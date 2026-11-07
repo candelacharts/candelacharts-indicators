@@ -1,52 +1,49 @@
 # ATH DRAWDOWN
 
- 📝 [b]Overview[/b]
+## 📝 Overview
 
-Track how far price is from its [b]All-Time High (ATH)[/b] at any moment. This tool plots the percentage drawdown since the running ATH, so you instantly see whether the market is near peak (≈0%) or deep in a cycle reset (e.g., −60% to −80%). It’s designed for cycle analysis, risk framing, DCA planning, and spotting “capitulation” zones across any symbol or timeframe.
+Track how far price is from its **All-Time High (ATH)** at any moment. This tool plots the percentage drawdown since the running ATH, so you instantly see whether the market is near peak (≈0%) or deep in a cycle reset (e.g., −60% to −80%). It’s designed for cycle analysis, risk framing, DCA planning, and spotting “capitulation” zones across any symbol or timeframe.
 
- 📦 [b]Features[/b]
-[list]
-[*] [b]True ATH drawdown%[/b] — 0% at ATH; negative values show distance below ATH.
-[*] [b]Price source switch[/b] — choose Close or High (wick-based ATH).
-[*] [b]Optional smoothing[/b] — EMA on drawdown% for cleaner cycles.
-[*] [b]Color-coded risk bands[/b] — green → yellow → orange → red → maroon as drawdown deepens.
-[*] [b]Milestone gridlines[/b] — quick read at −20/−40/−60/−80%.
-[*] [b]Inline readout[/b] — compact table shows the latest drawdown%.
-[*] [b]Ready-made alert[/b] — notify when drawdown enters the classic −70% to −80% zone.
-[/list]
+## 📦 Features
 
- ⚙️ [b]Settings[/b]
-[list]
-[b]Price[/b] — [code]Close[/code] or [code]High[/code] for ATH calculation (wicks vs closes).
-[b]Smoothing[/b] — EMA length on drawdown% (0 = off).
-[b]Show grid lines[/b] — level guides at −20/−40/−60/−80%.
-[b]Alert 70–80%[/b] — enable alert when drawdown is between −70% and −80%.
-[b]Show latest ATH drawdown %[/b] — table readout in the chart.
-[/list]
+- **True ATH drawdown%** — 0% at ATH; negative values show distance below ATH.
+- **Price source switch** — choose Close or High (wick-based ATH).
+- **Optional smoothing** — EMA on drawdown% for cleaner cycles.
+- **Color-coded risk bands** — green → yellow → orange → red → maroon as drawdown deepens.
+- **Milestone gridlines** — quick read at −20/−40/−60/−80%.
+- **Inline readout** — compact table shows the latest drawdown%.
+- **Ready-made alert** — notify when drawdown enters the classic −70% to −80% zone.
 
- ⚡️ [b]Showcase[/b]
+## ⚙️ Settings
 
-Contextualize cycle risk: near 0% = late-cycle/expansion; sub −60% = deep retrace.
+- **Price** — `Close` or `High` for ATH calculation (wicks vs closes).
+- **Smoothing** — EMA length on drawdown% (0 = off).
+- **Show grid lines** — level guides at −20/−40/−60/−80%.
+- **Alert 70–80%** — enable alert when drawdown is between −70% and −80%.
+- **Show latest ATH drawdown %** — table readout in the chart.
+
+## ⚡️ Showcase
+
+Contextualize cycle risk: near 0% = late-cycle/expansion; sub −60% = deep retrace.  
 https://www.tradingview.com/x/twbPCbVr/
 
- 📒 [b]Usage[/b]
-[list]
-[*] Add to any symbol/timeframe.
-[*] Pick [b]Price[/b] source (Close or High) to match your methodology.
-[*] (Optional) Set [b]Smoothing[/b] to clarify bigger cycles.
-[*] Use color bands & gridlines to define risk buckets (e.g., “accumulate < −60%”).
-[*] Watch the table for the current drawdown at a glance.
-[/list]
+## 📒 Usage
 
- 🚨 [b]Alerts[/b]
+- Add to any symbol/timeframe.
+- Pick **Price** source (Close or High) to match your methodology.
+- (Optional) Set **Smoothing** to clarify bigger cycles.
+- Use color bands & gridlines to define risk buckets (e.g., “accumulate < −60%”).
+- Watch the table for the current drawdown at a glance.
+
+## 🚨 Alerts
 
 The indicator provides configurable alerts that turn drawdown bands into actionable signals.
 
-[b]Drawdown between 70% and 80%[/b] — fires when drawdown enters the −70%…−80% band; ideal for “capitulation zone” notifications.
+**Drawdown between 70% and 80%** — fires when drawdown enters the −70%…−80% band; ideal for “capitulation zone” notifications.
 
- ⚠️ [b]Disclaimer[/b]
+## ⚠️ Disclaimer
 
-[i]These tools are exclusively available on the TradingView platform.[/i]
+*These tools are exclusively available on the TradingView platform.*
 
 Our charting tools are intended solely for informational and educational purposes and should not be regarded as financial, investment, or trading advice. They are not designed to predict market movements or offer specific recommendations. Users should be aware that past performance is not indicative of future results and should not rely on these tools for financial decisions. By using these charting tools, the purchaser agrees that the seller and creator hold no responsibility for any decisions made based on information provided by the tools. The purchaser assumes full responsibility and liability for any actions taken and their consequences, including potential financial losses or investment outcomes that may result from the use of these products.
 

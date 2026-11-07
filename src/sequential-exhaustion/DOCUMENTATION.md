@@ -1,71 +1,63 @@
 # SEQUENTIAL EXHAUSTION
 
-📝 [b]Overview[/b]
+## 📝 Overview
 
 The Sequential Exhaustion indicator is an oscillator inspired by the technical methodologies of Tom DeMark. It measures market demand by comparing intra-period price extremes to previous levels, helping traders identify overextended trends and potential reversal points.
 
 Unlike many oscillators that rely solely on closing prices, this indicator focuses on price action at the margins (highs and lows), making it highly sensitive to true market exhaustion.
 
-📦 [b]Features[/b]
+## 📦 Features
 
-[list]
-[*] [b]High-Precision Divergences[/b]: Implements our advanced high-precision algorithm for identifying market exhaustion.
-[*] [b]Visual Signal Hierarchy[/b]: Uses solid lines for extreme (OB/OS) divergences and dashed lines for neutral zone signals.
-[*] [b]Triangle Markers[/b]: Clean, minimal triangle markers for immediate signal identification.
-[*] [b]Dynamic Overbought/Oversold Zones[/b]: Visual levels at 0.7 and 0.3 with background shading.
-[*] [b]Trend Midline[/b]: Includes a 0.5 midline to help gauge the overall market bias.
-[*] [b]Momentum Radar[/b]: Dynamic background heat map that intensifies as price moves deeper into exhaustion zones.
-[/list]
+- **High-Precision Divergences**: Implements our advanced high-precision algorithm for identifying market exhaustion.
+- **Visual Signal Hierarchy**: Uses solid lines for extreme (OB/OS) divergences and dashed lines for neutral zone signals.
+- **Triangle Markers**: Clean, minimal triangle markers for immediate signal identification.
+- **Dynamic Overbought/Oversold Zones**: Visual levels at 0.7 and 0.3 with background shading.
+- **Trend Midline**: Includes a 0.5 midline to help gauge the overall market bias.
+- **Momentum Radar**: Dynamic background heat map that intensifies as price moves deeper into exhaustion zones.
 
-⚙️ [b]Settings[/b]
+## ⚙️ Settings
 
-[list]
-[*] [b]Calculation Period[/b]: The lookback window for the underlying exhaustion calculation (Default: 13).
-[*] [b]Smoothing[/b]: Optional moving average to filter out market noise (Default: 1).
-[*] [b]Overbought/Oversold Levels[/b]: Thresholds for price exhaustion (Default: 0.7/0.3).
-[*] [b]Show Divergences[/b]: Toggle visibility of exhaustion signals.
-[*] [b]Pivot Lookback[/b]: Sensitivity for pivot detection (Default: 5).
-[*] [b]Colors[/b]: Customizable colors for bullish and bearish signals.
-[*] [b]Show[/b]: Toggle the background exhaustion heat map.
-[*] [b]OB/OS Depth[/b]: Controls the sensitivity and "depth" required to reach maximum visual intensity.
-[/list]
+- **Calculation Period**: The lookback window for the underlying exhaustion calculation (Default: 13).
+- **Smoothing**: Optional moving average to filter out market noise (Default: 1).
+- **Overbought/Oversold Levels**: Thresholds for price exhaustion (Default: 0.7/0.3).
+- **Show Divergences**: Toggle visibility of exhaustion signals.
+- **Pivot Lookback**: Sensitivity for pivot detection (Default: 5).
+- **Colors**: Customizable colors for bullish and bearish signals.
+- **Show**: Toggle the background exhaustion heat map.
+- **OB/OS Depth**: Controls the sensitivity and "depth" required to reach maximum visual intensity.
 
-⚡️ [b]Showcase[/b]
+## ⚡️ Showcase
 
-[i]Overbought Line at 0.7 and Oversold Line at 0.3[/i]
+*Overbought Line at 0.7 and Oversold Line at 0.3*  
 https://www.tradingview.com/x/5dWFAVNW/
 
-[i]Divergences[/i]
+*Divergences*  
 https://www.tradingview.com/x/BkyN5HUp/
 
-[i]Bar Coloring[/i]
+*Bar Coloring*  
 https://www.tradingview.com/x/eKtTUydL/
 
-[i]Momentum Radar[/i]
+*Momentum Radar*  
 https://www.tradingview.com/x/nPoCl0D8/
 
-📒 [b]Usage[/b]
+## 📒 Usage
 
 To get the most out of the Sequential Exhaustion Oscillator, consider the following interpretive techniques:
 
-[list]
-[*] [b]Overbought/Oversold Reversals[/b]: When the line enters the [b]0.7 zone[/b], the market is overextended to the upside. Look for the line to cross back [i]below[/i] 0.7 as a potential sell signal. Conversely, when it enters the [b]0.3 zone[/b], it is oversold; a cross back [i]above[/i] 0.3 is a potential buy signal.
-[*] [b]Divergence Analysis[/b]: High-probability setups occur when price makes a new high/low that is not confirmed by the oscillator. 
-    - [b]Solid Lines[/b] (Extreme Zone): High-conviction signals suggesting imminent reversal.
-    - [b]Dashed Lines[/b] (Neutral Zone): Signs of waning momentum, often leading to consolidation or minor pullbacks.
-[*] [b]Regime Filter (0.5 Level)[/b]: The midline acts as a trend separator. If the oscillator is consistently holding above 0.5, the bullish momentum is dominant. Below 0.5 suggests a bearish regime.
-[*] [b]Momentum Radar (Exhaustion Heat Map)[/b]: The background shading at the extreme top and bottom of the oscillator acts as a visual "heat map." As the oscillator moves further beyond the 0.7 or 0.3 levels, the background color becomes more opaque, signaling a high-conviction exhaustion zone where a reversal is highly probable.
-[/list]
+- **Overbought/Oversold Reversals**: When the line enters the **0.7 zone**, the market is overextended to the upside. Look for the line to cross back *below* 0.7 as a potential sell signal. Conversely, when it enters the **0.3 zone**, it is oversold; a cross back *above* 0.3 is a potential buy signal.
+- **Divergence Analysis**: High-probability setups occur when price makes a new high/low that is not confirmed by the oscillator.
+  - **Solid Lines** (Extreme Zone): High-conviction signals suggesting imminent reversal.
+  - **Dashed Lines** (Neutral Zone): Signs of waning momentum, often leading to consolidation or minor pullbacks.
+- **Regime Filter (0.5 Level)**: The midline acts as a trend separator. If the oscillator is consistently holding above 0.5, the bullish momentum is dominant. Below 0.5 suggests a bearish regime.
+- **Momentum Radar (Exhaustion Heat Map)**: The background shading at the extreme top and bottom of the oscillator acts as a visual "heat map." As the oscillator moves further beyond the 0.7 or 0.3 levels, the background color becomes more opaque, signaling a high-conviction exhaustion zone where a reversal is highly probable.
 
-🚨 [b]Alerts[/b]
+## 🚨 Alerts
 
-[list]
-[*] [b]Bullish Divergence[/b]: Triggered when a new bullish divergence is confirmed.
-[*] [b]Bearish Divergence[/b]: Triggered when a new bearish divergence is confirmed.
-[*] [b]Cross Below Overbought[/b]: Triggers when the oscillator line crosses back below the 0.7 level.
-[*] [b]Cross Above Oversold[/b]: Triggers when the oscillator line crosses back above the 0.3 level.
-[/list]
+- **Bullish Divergence**: Triggered when a new bullish divergence is confirmed.
+- **Bearish Divergence**: Triggered when a new bearish divergence is confirmed.
+- **Cross Below Overbought**: Triggers when the oscillator line crosses back below the 0.7 level.
+- **Cross Above Oversold**: Triggers when the oscillator line crosses back above the 0.3 level.
 
-⚠️ [b]Disclaimer[/b]
+## ⚠️ Disclaimer
 
 Trading involves significant risk, and many participants may incur losses. The content on this site is not intended as financial advice and should not be interpreted as such. Decisions to buy, sell, hold, or trade securities, commodities, or other financial instruments carry inherent risks and are best made with guidance from qualified financial professionals. Past performance is not indicative of future results.
