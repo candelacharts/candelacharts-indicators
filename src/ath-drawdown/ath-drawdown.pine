@@ -1,0 +1,226 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © CandelaCharts
+
+//@version=6
+indicator(title = "CandelaCharts - ATH Drawdown", shorttitle = "CandelaCharts - ATH Drawdown", overlay=false, precision=2)
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+// Core
+colors_white          = color.white
+colors_black          = color.black
+colors_gray           = color.gray
+colors_blue           = color.blue
+colors_orange         = color.orange
+colors_green          = color.green
+colors_red            = color.red
+color_transparent     = #00000000
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+// # General ----------------------------------------------------------------- #
+
+general_font            = input.string("Monospace", "Text               ", options=["Default", "Monospace"], inline="1.0", group="General")
+general_text            = input.string("Tiny", "", options=["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline="1.0", group="General", tooltip="Text size")
+general_brand_show      = input.bool(false, "Hide Brand", group="General")
+
+// # ATH Drawdown ------------------------------------------------------------ #
+
+ath_d_src                = input.string("Close", "Price              ", options=["Close","High"], inline="1.0", group="Settings", tooltip="Choose whether ATH uses close or the highest wick.")
+ath_d_smooth_len         = input.int(0, "Smoothing      ", minval=0, inline="2.0", group="Settings", tooltip="Optional EMA on drawdown % for a smoother line. 0 = off")
+ath_d_show_grid          = input.bool(true, "Show grid lines at 10% steps", inline="3.0", group="Settings")
+ath_d_alert_70_80        = input.bool(true, "Alert when drawdown is between 70% and 80%", inline="4.0", group="Settings")
+ath_d_show_table         = input.bool(true, "Show latest ATH drawdown %", inline="5.0", group="Settings")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions   |
+// # ========================================================================= #
+
+//#region
+
+text_size(size) =>
+    switch size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        => size.auto
+
+font_family(font) =>
+    switch font
+        "Default"   => font.family_default
+        "Monospace" => font.family_monospace
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Algorithm   |
+// # ========================================================================= #
+
+//#region
+
+// Source / ATH
+price = ath_d_src == "High" ? high : close
+
+// Running ATH since the first bar
+var float ath = na
+ath := na(ath) ? price : math.max(ath, price)
+
+// Percent drawdown from ATH (0 at ATH, negative below)
+dd_raw = (price / ath - 1.0) * 100.0
+
+// Optional smoothing
+dd = ath_d_smooth_len > 0 ? ta.ema(dd_raw, ath_d_smooth_len) : dd_raw
+
+// Color function (green→yellow→orange→red as drawdown deepens)
+f_dd_color(val) =>
+    val >= -20  ? color.new(color.green, 0) :
+     val >= -40  ? color.new(color.yellow, 0) :
+     val >= -60  ? color.new(color.orange, 0) :
+     val >= -80  ? color.new(color.red, 0) :
+                   color.new(color.maroon, 0)
+
+line_color = f_dd_color(dd)
+
+// Plot series
+plot(dd, title="ATH Drawdown %", color=line_color, linewidth=2)
+
+// Zero line (at ATH)
+// plot(0, title="0%", color=color.new(color.gray, 70), linewidth=1)
+
+hline(ath_d_show_grid ? -20 : na,  "−20%",  color=color.new(color.green, 50), linestyle=hline.style_solid)
+hline(ath_d_show_grid ? -40 : na,  "−40%",  color=color.new(color.yellow, 50), linestyle=hline.style_solid)
+hline(ath_d_show_grid ? -60 : na,  "−60%",  color=color.new(color.orange, 50), linestyle=hline.style_solid)
+hline(ath_d_show_grid ? -80 : na,  "−80%",  color=color.new(color.red, 50), linestyle=hline.style_solid)
+
+if ath_d_show_table
+    var table t = table.new(position.top_right, 1, 1)
+    table.cell(t, 0, 0, "Drawdown: " + str.tostring(dd, format.mintick) + "%", text_color=color.black, bgcolor=na, text_size=size.small)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Alerts   |
+// # ========================================================================= #
+
+//#region
+
+alertcondition(ath_d_alert_70_80 and (dd <= -70) and (dd >= -80), title="Drawdown between 70% and 80%", message="ATH Drawdown is between 70% and 80%")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand Label   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and not general_brand_show
+    var table brand_table = table.new(position.bottom_right, 1, 1, bgcolor=chart.bg_color)
+    table.cell(brand_table, 0, 0, "© CandelaCharts", text_color=color.new(colors_gray, 30),
+               text_halign=text.align_center, text_size=text_size(general_text),
+               text_font_family=font_family(general_font))
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #

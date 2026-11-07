@@ -1,0 +1,323 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © CandelaCharts
+
+//@version=6
+indicator(title = "CandelaCharts - Major Assets", shorttitle = "CandelaCharts - Major Assets", overlay=false)
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+// # Core -------------------------------------------------------------------- #
+
+colors_white                        = color.white
+colors_black                        = color.black
+colors_purple                       = color.purple
+colors_red                          = color.red
+colors_gray                         = color.gray
+colors_blue                         = color.blue
+colors_orange                       = color.orange
+colors_green                        = color.green
+color_transparent                   = #ffffff00
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+// # General ----------------------------------------------------------------- #
+
+general_font                            = input.string("Monospace", "Text               ", options = ["Default", "Monospace"], inline = "1.0", group = "General")
+general_text                            = input.string("Tiny", "", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline = "1.0", group = "General", tooltip = "Customize global text size and style")
+general_brand_show                      = input.bool(false, "Hide Brand", group = "General")
+
+// #  Major Assets ----------------------------------------------------------- #
+
+from_date                               = input.time(timestamp("2010-01-01T00:00:00"), "From              ", inline = "1.0", group = "Settings", tooltip = "Index From (date)")
+show_base                               = input.bool(true, "Show Base", inline = "2.0", group = "Settings", tooltip = "Show Base = 100 line")
+
+show_NDX                                = input.bool(true, "QQQ       ", inline = "1.0", group = "Assets")
+color_NDX                               = input.color(color.aqua, "", inline = "1.0", group = "Assets")
+sym_NDX                                 = input.symbol("QQQ", "", inline = "1.0", group = "Assets", tooltip = "NASDAQ 100 (QQQ)")
+show_SPY                                = input.bool(true, "S&P 500  ", inline = "2.0", group = "Assets")
+color_SPY                               = input.color(color.blue, "", inline = "2.0", group = "Assets")
+sym_SPY                                 = input.symbol("SPY", "", inline = "2.0", group = "Assets", tooltip = "S&P 500")
+show_ACWI                               = input.bool(true, "ACWI      ", inline = "3.0", group = "Assets")
+color_ACWI                              = input.color(color.purple, "", inline = "3.0", group = "Assets")
+sym_ACWI                                = input.symbol("ACWI", "", inline = "3.0", group = "Assets", tooltip = "Global Equities (ACWI)")
+show_TLT                                = input.bool(true, "TLT        ", inline = "4.0", group = "Assets")
+color_TLT                               = input.color(color.teal, "", inline = "4.0", group = "Assets")
+sym_TLT                                 = input.symbol("TLT", "", inline = "4.0", group = "Assets", tooltip = "US Treasuries Long (TLT)")
+show_CASH                               = input.bool(true, "T-Bills     ", inline = "5.0", group = "Assets")
+color_CASH                              = input.color(color.gray, "", inline = "5.0", group = "Assets")
+sym_CASH                                = input.symbol("SGOV", "", inline = "5.0", group = "Assets", tooltip = "T-Bills / Cash. (e.g., SGOV/BIL/SHV)")
+show_HYG                                = input.bool(true, "HYG        ", inline = "6.0", group = "Assets")
+color_HYG                               = input.color(color.orange, "", inline = "6.0", group = "Assets")
+sym_HYG                                 = input.symbol("HYG", "", inline = "6.0", group = "Assets", tooltip = "High Yield Bonds (HYG)")
+show_GLD                                = input.bool(true, "GLD        ", inline = "7.0", group = "Assets")
+color_GLD                               = input.color(color.yellow, "", inline = "7.0", group = "Assets")
+sym_GLD                                 = input.symbol("GLD", "", inline = "7.0", group = "Assets", tooltip = "Gold (GLD)")
+show_USO                                = input.bool(false, "USO        ", inline = "8.0", group = "Assets")
+color_USO                               = input.color(color.red, "", inline = "8.0", group = "Assets")
+sym_USO                                 = input.symbol("USO", "", inline = "8.0", group = "Assets", tooltip = "Oil (USO)")
+show_DXY                                = input.bool(true, "DXY        ", inline = "9.0", group = "Assets")
+color_DXY                               = input.color(color.fuchsia, "", inline = "9.0", group = "Assets")
+sym_DXY                                 = input.symbol("DXY", "", inline = "9.0", group = "Assets", tooltip = "US Dollar Index (DXY)")
+show_BTC                                = input.bool(false, "BTC        ", inline = "10.0", group = "Assets")
+color_BTC                               = input.color(color.green, "", inline = "10.0", group = "Assets")
+sym_BTC                                 = input.symbol("BTC1!", "", inline = "10.0", group = "Assets", tooltip = "Bitcoin (BTC)")
+show_ETH                                = input.bool(false, "ETH        ", inline = "11.0", group = "Assets")
+color_ETH                               = input.color(color.navy, "", inline = "11.0", group = "Assets")
+sym_ETH                                 = input.symbol("ETH1!", "", inline = "11.0", group = "Assets", tooltip = "Ethereum (ETH)")
+show_M2                                 = input.bool(true, "US M2     ", inline = "12.0", group = "Assets")
+color_M2                                = input.color(color.silver, "", inline = "12.0", group = "Assets")
+sym_M2                                  = input.symbol("USM2", "", inline = "12.0", group = "Assets", tooltip = "US M2 Money Supply")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions   |
+// # ========================================================================= #
+
+//#region
+
+method text_size(string size) =>
+    out = switch size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        "Auto"   => size.auto
+    out
+
+method line_style(string style) =>
+    out = switch style
+        '⎯⎯⎯'  => line.style_solid
+        '----'   => line.style_dashed
+        '····'   => line.style_dotted
+
+method font_style(string font) =>
+    out = switch font
+        'Default'   => font.family_default
+        'Monospace' => font.family_monospace
+
+is_dark() =>
+    bg_color = chart.bg_color
+
+    r = color.r(bg_color)
+    g = color.g(bg_color)
+    b = color.b(bg_color)
+    luminosity = r + g + b
+    is_dark = luminosity <= 383
+
+    is_dark
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Algorithm   |
+// # ========================================================================= #
+
+//#region
+
+// Helper: normalized series (indexed to 100 from first bar on/after from_date)
+f_indexed(sym, cond) =>
+    float c = na
+    if cond
+        c := request.security(sym, timeframe.period, close, ignore_invalid_symbol=true)
+        if barstate.islast and na(c)
+            log.error("Data missing or invalid ticker: " + sym)
+    startCond = time >= from_date and not na(c)
+    firstBar  = startCond and not startCond[1]
+    base      = ta.valuewhen(firstBar, c, 0)
+    base := na(base) ? ta.valuewhen(not na(c), c, 0) : base
+    c / base * 100
+
+// Series
+ndx   = f_indexed(sym_NDX, show_NDX)
+spx   = f_indexed(sym_SPY, show_SPY)
+acwi  = f_indexed(sym_ACWI, show_ACWI)
+tlt   = f_indexed(sym_TLT, show_TLT)
+cash  = f_indexed(sym_CASH, show_CASH)
+hyg   = f_indexed(sym_HYG, show_HYG)
+gold  = f_indexed(sym_GLD, show_GLD)
+oil   = f_indexed(sym_USO, show_USO)
+dxy   = f_indexed(sym_DXY, show_DXY)
+btc   = f_indexed(sym_BTC, show_BTC)
+eth   = f_indexed(sym_ETH, show_ETH)
+m2    = f_indexed(sym_M2, show_M2)   // monthly; steps on lower TFs
+
+// Colors
+col_NDX  = color_NDX
+col_SPY  = color_SPY
+col_ACWI = color_ACWI
+col_TLT  = color_TLT
+col_CASH = color_CASH
+col_HYG  = color_HYG
+col_GLD  = color_GLD
+col_USO  = color_USO
+col_DXY  = color_DXY
+col_BTC  = color_BTC
+col_ETH  = color_ETH
+col_M2   = color_M2
+
+// Plots (global only)
+plot(show_NDX  ? ndx  : na, title="NASDAQ 100 (QQQ)",          color=col_NDX,  linewidth=2)
+plot(show_SPY  ? spx  : na, title="S&P 500 (SPY)",             color=col_SPY,  linewidth=2)
+plot(show_ACWI ? acwi : na, title="Global Equities (ACWI)",    color=col_ACWI, linewidth=2)
+plot(show_TLT  ? tlt  : na, title="US Treasuries Long (TLT)",  color=col_TLT,  linewidth=2)
+plot(show_CASH ? cash : na, title="T-Bills / Cash",            color=col_CASH, linewidth=2)
+plot(show_HYG  ? hyg  : na, title="High Yield Bonds (HYG)",    color=col_HYG,  linewidth=2)
+plot(show_GLD  ? gold : na, title="Gold (GLD)",                color=col_GLD,  linewidth=2)
+plot(show_USO  ? oil  : na, title="Oil (USO)",                 color=col_USO,  linewidth=2)
+plot(show_DXY  ? dxy  : na, title="US Dollar Index (DXY)",     color=col_DXY,  linewidth=2)
+plot(show_BTC  ? btc  : na, title="Bitcoin (BTC)",             color=col_BTC,  linewidth=2)
+plot(show_ETH  ? eth  : na, title="Ethereum (ETH)",            color=col_ETH,  linewidth=2)
+plot(show_M2   ? m2   : na, title="US M2 Money Supply",        color=col_M2,   linewidth=2)
+plot(show_base ? 100  : na, title="Base = 100",                color=color.new(color.gray, 50))
+
+// Label text helper (one decimal)
+f_valtxt(name, v) =>
+    name + " " + str.tostring(math.round(v * 10.0) / 10.0)
+
+// Persistent labels (one per asset)
+var label l_NDX  = na
+var label l_SPY  = na
+var label l_ACWI = na
+var label l_TLT  = na
+var label l_CASH = na
+var label l_HYG  = na
+var label l_GLD  = na
+var label l_USO  = na
+var label l_DXY  = na
+var label l_BTC  = na
+var label l_ETH  = na
+var label l_M2   = na
+
+// Update helper (no argument mutation)
+f_upd_label(lbl, show, y, name, bg, txtcol) =>
+    label res = lbl
+    if barstate.islast
+        if show and not na(y)
+            if na(res)
+                res := label.new(bar_index, y, f_valtxt(name, y),
+                                 xloc=xloc.bar_index, yloc=yloc.price,
+                                 style=label.style_label_left, textcolor=txtcol,
+                                 color=color.new(bg, 0), size=size.small)
+            else
+                label.set_xy(res, bar_index, y)
+                label.set_text(res, f_valtxt(name, y))
+                label.set_color(res, color.new(bg, 0))
+                label.set_textcolor(res, txtcol)
+        else
+            if not na(res)
+                label.delete(res)
+                res := na
+    res
+
+// Update labels on last bar
+l_NDX  := f_upd_label(l_NDX,  show_NDX,  ndx,  "NASDAQ 100", col_NDX,  color.white)
+l_SPY  := f_upd_label(l_SPY,  show_SPY,  spx,  "S&P 500",    col_SPY,  color.white)
+l_ACWI := f_upd_label(l_ACWI, show_ACWI, acwi, "Global Eq.",  col_ACWI, color.white)
+l_TLT  := f_upd_label(l_TLT,  show_TLT,  tlt,  "US Treas.",   col_TLT,  color.white)
+l_CASH := f_upd_label(l_CASH, show_CASH, cash, "T-Bills",     col_CASH, color.white)
+l_HYG  := f_upd_label(l_HYG,  show_HYG,  hyg,  "High Yield",  col_HYG,  color.white)
+l_GLD  := f_upd_label(l_GLD,  show_GLD,  gold, "Gold",        col_GLD,  color.black)
+l_USO  := f_upd_label(l_USO,  show_USO,  oil,  "Oil",         col_USO,  color.white)
+l_DXY  := f_upd_label(l_DXY,  show_DXY,  dxy,  "DXY",         col_DXY,  color.white)
+l_BTC  := f_upd_label(l_BTC,  show_BTC,  btc,  "BTC",         col_BTC,  color.white)
+l_ETH  := f_upd_label(l_ETH,  show_ETH,  eth,  "ETH",         col_ETH,  color.white)
+l_M2   := f_upd_label(l_M2,   show_M2,   m2,   "US M2",       col_M2,   color.black)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and general_brand_show == false
+    var table brand = table.new(position.bottom_right, 1, 1, bgcolor = chart.bg_color)
+    table.cell(brand, 0, 0,  "© CandelaCharts", text_color = colors_gray, text_halign = text.align_center, text_size = text_size(general_text), text_font_family = font_style(general_font))
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #

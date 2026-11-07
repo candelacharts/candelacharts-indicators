@@ -1,0 +1,273 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © CandelaCharts
+
+//@version=6
+indicator("CandelaCharts - Bitcoin Realized Price Bands", overlay=false, max_lines_count=500, max_labels_count=500, max_boxes_count=500)
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+colors_white                        = color.white
+colors_black                        = color.black
+colors_green                        = color.green
+colors_orange                       = color.orange
+colors_blue                         = color.blue
+colors_aqua                         = color.aqua
+colors_fuchsia                      = color.fuchsia
+colors_lime                         = color.lime
+colors_maroon                       = color.maroon
+colors_navy                         = color.navy
+colors_olive                        = color.olive
+colors_purple                       = color.purple
+colors_teal                         = color.teal
+colors_yellow                       = color.yellow
+colors_red                          = color.red
+colors_gray                         = color.gray
+colors_silver                       = color.silver
+colors_transparent                  = color.new(color.white, 100)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+general_font       = input.string("Monospace", "Text                   ", options = ["Default", "Monospace"], inline = "1.0", group = "General")
+general_text       = input.string("Tiny", "", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline = "1.0", group = "General", tooltip = "Customize global text size and style")
+general_brand_show = input.bool(false, "Hide Brand", group = "General")
+
+lowbandinp      = input.float(0.75, "Lower Band",     step=0.05, group="Settings")
+upper0inp       = input.float(1.0,  "Realized Price", step=0.05, group="Settings")
+upper1inp       = input.float(1.5,  "Mid Line",       step=0.05, group="Settings")
+upper2inp       = input.float(2.5,  "Overvalued",     step=0.05, group="Settings")
+upper3inp       = input.float(3.5,  "Extreme Bubble", step=0.05, group="Settings")
+pos_col_css     = input.color(colors_teal, "Band Colors        ", inline = "1.0", group="Settings")
+neg_col_css     = input.color(colors_red, "", inline = "1.0", group="Settings")
+neu_col_css     = input.color(colors_gray, "", inline = "1.0", group="Settings")
+show_top_bands  = input.bool(false,  "Show Top Bands", group="Settings")
+show_bot_bands  = input.bool(true,  "Show Bottom Bands", group="Settings")
+show_main_chart = input.bool(true,  "Show Main Chart Visuals", group="Settings")
+show_bg         = input.bool(true,  "Show Background Highlight", group="Settings")
+
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions  |
+// # ========================================================================= #
+
+//#region
+
+method text_size(string size) =>
+    out = switch size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        "Auto"   => size.auto
+    out
+
+method font_style(string font) =>
+    out = switch font
+        'Default'   => font.family_default
+        'Monospace' => font.family_monospace
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Core Logic   |
+// # ========================================================================= #
+
+//#region
+
+btc_real = request.security("COINMETRICS:BTC_MARKETCAPREAL", "D", close)
+btc_supp = request.security("GLASSNODE:BTC_SUPPLY",          "D", close)
+
+realized_price = btc_real / btc_supp
+
+lowband = realized_price * lowbandinp
+upper0  = realized_price * upper0inp
+upper1  = realized_price * upper1inp
+upper2  = realized_price * upper2inp
+upper3  = realized_price * upper3inp
+
+osc = realized_price != 0 and not na(realized_price) ? close / realized_price : na
+
+candle_col = show_top_bands and osc >= upper2inp ? neg_col_css :
+             osc >= upper1inp ? colors_black :
+             osc >= 1.0       ? colors_black :
+             show_bot_bands   ? pos_col_css :
+             colors_black
+
+cross_long  = show_bot_bands and osc[1] < upper0inp   and osc >= upper0inp
+cross_short = show_top_bands and osc[1] > upper2inp   and osc <= upper2inp
+
+if cross_long
+    alert("Long Signal", alert.freq_once_per_bar_close)
+
+if cross_short
+    alert("Short Signal", alert.freq_once_per_bar_close)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Plotting   |
+// # ========================================================================= #
+
+//#region
+
+// Main Chart Visuals
+pov1 = plot(show_main_chart and show_bot_bands ? lowband : na,       "Lower Band",     color=pos_col_css, linewidth=1, force_overlay=true)
+pov0 = plot(show_main_chart and show_bot_bands ? upper0 : na,        "Realized Price", color=pos_col_css, linewidth=1, force_overlay=true)
+pov3 = plot(show_main_chart ? upper1 : na,          "Mid Line",       color=neu_col_css, linewidth=1, force_overlay=true)
+pov4 = plot(show_main_chart and show_top_bands ? upper2 : na,           "Overvalued",     color=neg_col_css, linewidth=1, force_overlay=true)
+pov5 = plot(show_main_chart and show_top_bands ? upper3 : na,           "Extreme Bubble", color=neg_col_css, linewidth=1, force_overlay=true)
+
+fill(pov1, pov0, color=show_bot_bands ? color.new(pos_col_css, 80) : na)
+fill(pov4, pov5, color=show_top_bands ? color.new(neg_col_css, 80) : na)
+
+plotcandle(show_main_chart ? open : na, show_main_chart ? high : na, show_main_chart ? low : na, show_main_chart ? close : na, "Candles", candle_col, candle_col,
+     bordercolor=candle_col, force_overlay=true)
+
+// Oscillator Visuals
+po1 = plot(show_bot_bands ? lowbandinp : na, "Osc Lower Band",     color=pos_col_css, linewidth=1)
+po0 = plot(show_bot_bands ? upper0inp : na,  "Osc Realized Price", color=pos_col_css, linewidth=1)
+po3 = plot(upper1inp,    "Osc Mid Line",       color=neu_col_css, linewidth=1)
+po4 = plot(show_top_bands ? upper2inp : na,     "Osc Overvalued",     color=neg_col_css, linewidth=1)
+po5 = plot(show_top_bands ? upper3inp : na,     "Osc Extreme Bubble", color=neg_col_css, linewidth=1)
+
+posc = plot(osc, "MVRV Ratio", color=candle_col, linewidth=2)
+
+plotshape(show_main_chart and cross_long, "Long Signal",
+     style        = shape.triangleup,
+     location     = location.belowbar,
+     color        = pos_col_css,
+     size         = size.small,
+     force_overlay = true)
+
+plotshape(show_main_chart and cross_short, "Short Signal",
+     style        = shape.triangledown,
+     location     = location.abovebar,
+     color        = neg_col_css,
+     size         = size.small,
+     force_overlay = true)
+
+fill(po1, po0, color=show_bot_bands ? color.new(pos_col_css, 80) : na)
+fill(po4, po5, color=show_top_bands ? color.new(neg_col_css, 80) : na)
+fill(posc, po3, upper3inp, upper2inp, top_color=show_top_bands ? color.new(neg_col_css, 0) : na, bottom_color=show_top_bands ? color.new(neg_col_css, 100) : na, title="Top Gradient")
+fill(posc, po5, color=show_top_bands and osc >= upper3inp ? color.new(neg_col_css, 0) : na, title="Top Extreme Solid")
+
+fill(posc, po3, upper0inp, lowbandinp, top_color=show_bot_bands ? color.new(pos_col_css, 100) : na, bottom_color=show_bot_bands ? color.new(pos_col_css, 0) : na, title="Bottom Gradient")
+fill(posc, po1, color=show_bot_bands and osc <= lowbandinp ? color.new(pos_col_css, 0) : na, title="Bottom Extreme Solid")
+
+// Main Chart Background Highlights
+bgcolor(show_main_chart and show_bg and show_bot_bands and osc <= upper0inp ? color.new(pos_col_css, 85) : na, force_overlay=true, title="Pos Bg")
+bgcolor(show_main_chart and show_bg and show_top_bands and osc >= upper2inp ? color.new(neg_col_css, 85) : na, force_overlay=true, title="Neg Bg")
+
+// Oscillator Background Highlights
+bgcolor(show_bg and show_bot_bands and osc <= upper0inp ? color.new(pos_col_css, 85) : na, title="Osc Pos Bg")
+bgcolor(show_bg and show_top_bands and osc >= upper2inp ? color.new(neg_col_css, 85) : na, title="Osc Neg Bg")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and general_brand_show == false
+    var table brand = table.new(position.bottom_right, 1, 1, bgcolor = chart.bg_color)
+    table.cell(brand, 0, 0,  "© CandelaCharts", text_color = colors_gray, text_halign = text.align_center, text_size = text_size(general_text), text_font_family = font_style(general_font))
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #

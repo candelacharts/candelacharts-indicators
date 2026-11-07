@@ -1,0 +1,199 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © CandelaCharts
+
+//@version=6
+indicator(title = "CandelaCharts - Monthly Price Momentum", shorttitle = "CandelaCharts - Monthly Price Momentum", overlay=false, precision=2)
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+// # Core -------------------------------------------------------------------- #
+
+colors_white                        = color.white
+colors_black                        = color.black
+colors_purple                       = color.purple
+colors_red                          = color.red
+colors_gray                         = color.gray
+colors_blue                         = color.blue
+colors_orange                       = color.orange
+colors_green                        = color.green
+color_transparent                   = #ffffff00
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+// # General ----------------------------------------------------------------- #
+
+general_font                            = input.string("Monospace", "Text             ", options = ["Default", "Monospace"], inline = "1.0", group = "General")
+general_text                            = input.string("Tiny", "", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline = "1.0", group = "General", tooltip = "Customize global text size and style")
+general_brand_show                      = input.bool(false, "Hide Brand", group = "General")
+
+// #  Monthly Price Momentum ------------------------------------------------- #
+
+mpm_len_days                            = input.int(30, "Lookback      ", minval=1, inline = "1.0", group = "Settings", tooltip = "Momentum Lookback (days)")
+smoothLen                               = input.int(3,  "Smoothing     ", minval=1, inline = "2.0", group = "Settings")
+mpm_level_up                            = input.float(30.0, "Upper Level   ", step=0.25, inline = "3.0", group = "Settings")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions   |
+// # ========================================================================= #
+
+//#region
+
+method text_size(string size) =>
+    out = switch size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        "Auto"   => size.auto
+    out
+
+method line_style(string style) =>
+    out = switch style
+        '⎯⎯⎯'  => line.style_solid
+        '----'   => line.style_dashed
+        '····'   => line.style_dotted
+
+method font_style(string font) =>
+    out = switch font
+        'Default'   => font.family_default
+        'Monospace' => font.family_monospace
+
+is_dark() =>
+    bg_color = chart.bg_color
+
+    r = color.r(bg_color)
+    g = color.g(bg_color)
+    b = color.b(bg_color)
+    luminosity = r + g + b
+    is_dark = luminosity <= 383
+
+    is_dark
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Algorithm   |
+// # ========================================================================= #
+
+//#region
+
+// Core series
+roc_pct_raw   = (close - close[mpm_len_days]) / close[mpm_len_days] * 100.0
+roc_pct       = ta.ema(roc_pct_raw, smoothLen)
+
+// Horizontal reference lines
+h0 = hline(0.0,  "Zero",  color=color.new(color.gray, 30), linestyle=hline.style_dashed, linewidth=1)
+h1 = hline(mpm_level_up, "Level", color=color.rgb(137, 138, 139), linestyle=hline.style_solid, linewidth=2)
+
+// Gradient Coloring
+// Normalize ROC into range -50..+50 for gradient mapping
+scale_min  = -50.0
+scale_max  =  50.0
+clamped    = math.max(math.min(roc_pct, scale_max), scale_min)
+pct        = (clamped - scale_min) / (scale_max - scale_min)  // 0..1 scale
+
+// Blend from dark blue → bright cyan
+grad_color = color.from_gradient(pct, 0.0, 1.0, color.rgb(2, 40, 154), color.rgb(1, 188, 240))
+
+// Plot main oscillator with gradient
+plot(roc_pct, title="Monthly Price Momentum (ROC%)", color=grad_color, linewidth=2)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and general_brand_show == false
+    var table brand = table.new(position.bottom_right, 1, 1, bgcolor = chart.bg_color)
+    table.cell(brand, 0, 0,  "© CandelaCharts", text_color = colors_gray, text_halign = text.align_center, text_size = text_size(general_text), text_font_family = font_style(general_font))
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #

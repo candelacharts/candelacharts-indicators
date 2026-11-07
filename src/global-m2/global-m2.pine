@@ -1,0 +1,293 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © CandelaCharts
+
+//@version=6
+indicator(title="CandelaCharts - Global M2", shorttitle="CandelaCharts - Global M2", overlay=true, scale=scale.left)
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+// # Core -------------------------------------------------------------------- #
+
+colors_white                        = color.white
+colors_black                        = color.black
+colors_purple                       = color.purple
+colors_red                          = color.red
+colors_gray                         = color.gray
+colors_blue                         = color.blue
+colors_orange                       = color.orange
+colors_green                        = color.green
+color_transparent                   = #ffffff00
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+// # General ----------------------------------------------------------------- #
+
+general_font                            = input.string("Monospace", "Text             ", options = ["Default", "Monospace"], inline = "5", group = "General")
+general_text                            = input.string("Tiny", "", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline = "5", group = "General", tooltip = "Customize global text size and style")
+general_brand_show                      = input.bool(false, "Hide Brand", group = "General")
+
+// #  Global M2 -------------------------------------------------------------- #
+
+g_m2_ma_enabled                         = input.bool(true, "Moving Average", group = "Moving Average")
+g_m2_ma_type                            = input.string("SMA", "Type", options=["SMA", "EMA", "WMA"], group = "Moving Average")
+g_m2_ma_length                          = input.int(200, "Length", minval=1, group = "Moving Average")
+g_m2_ma_color                           = input.color(color.purple, "Color", group = "Moving Average")
+
+g_m2_offset_weeks                       = input.int(0, "Offset       ", minval=-52, maxval=52, inline = "1.0", group = "M2", tooltip="Number of weeks to shift the plot forward or backward")
+g_m2_line_color                         = input.color(color.blue, "", inline = "1.0", group = "M2")
+g_m2_usa_active                         = input.bool(true, "🇺🇸 USM2 (USA Money Supply)", group = "M2")
+g_m2_europe_active                      = input.bool(true, "🇪🇺 EUM2 (Eurozone Money Supply)", group = "M2")
+g_m2_china_active                       = input.bool(true, "🇨🇳 CNM2 (China Money Supply)", group = "M2")
+g_m2_japan_active                       = input.bool(true, "🇯🇵 JPM2 (Japan Money Supply)", group = "M2")
+g_m2_uk_active                          = input.bool(true, "🇬🇧 UKM2 (UK Money Supply)", group = "M2")
+g_m2_canada_active                      = input.bool(true, "🇨🇦 CAM2 (Canada Money Supply)", group = "M2")
+g_m2_australia_active                   = input.bool(true, "🇦🇺 AUM3 (Australia Money Supply)", group = "M2")
+g_m2_india_active                       = input.bool(true, "🇮🇳 INM2 (India Money Supply)", group = "M2")
+g_m2_korea_active                       = input.bool(true, "🇰🇷 KRM2 (South Korea Money Supply)", group = "M2")
+g_m2_brazil_active                      = input.bool(true, "🇧🇷 BRM2 (Brazil Money Supply)", group = "M2")
+g_m2_russia_active                      = input.bool(true, "🇷🇺 RUM2 (Russia Money Supply)", group = "M2")
+g_m2_switzerland_active                 = input.bool(true, "🇨🇭 CHM2 (Switzerland Money Supply)", group = "M2")
+g_m2_mexico_active                      = input.bool(true, "🇲🇽 MXM2 (Mexico Money Supply)", group = "M2")
+g_m2_indonesia_active                   = input.bool(true, "🇮🇩 IDM2 (Indonesia Money Supply)", group = "M2")
+g_m2_turkey_active                      = input.bool(true, "🇹🇷 TRM2 (Turkey Money Supply)", group = "M2")
+g_m2_saudi_active                       = input.bool(true, "🇸🇦 SAM2 (Saudi Arabia Money Supply)", group = "M2")
+g_m2_argentina_active                   = input.bool(true, "🇦🇷 ARM2 (Argentina Money Supply)", group = "M2")
+g_m2_southafrica_active                 = input.bool(true, "🇿🇦 ZAM2 (South Africa Money Supply)", group = "M2")
+g_m2_qatar_active                       = input.bool(true, "🇶🇦 QAM2 (Qatar Money Supply)", group = "M2")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions   |
+// # ========================================================================= #
+
+//#region
+
+method text_size(string size) =>
+    out = switch size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        "Auto"   => size.auto
+    out
+
+method line_style(string style) =>
+    out = switch style
+        '⎯⎯⎯'  => line.style_solid
+        '----'   => line.style_dashed
+        '····'   => line.style_dotted
+
+method font_style(string font) =>
+    out = switch font
+        'Default'   => font.family_default
+        'Monospace' => font.family_monospace
+
+is_dark() =>
+    bg_color = chart.bg_color
+
+    r = color.r(bg_color)
+    g = color.g(bg_color)
+    b = color.b(bg_color)
+    luminosity = r + g + b
+    is_dark = luminosity <= 383
+
+    is_dark
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Algorithm   |
+// # ========================================================================= #
+
+//#region
+
+// Data configuration
+string tf = "D"
+
+// Function to safely get M2 and convert to USD if needed
+getM2(string m2_symbol, string fx_pair) =>
+    m2 = request.security(m2_symbol, tf, close)
+    fx = request.security(fx_pair, tf, close)
+    m2 * fx
+
+// Country M2 calculations (Only active ones are evaluated)
+float us_m2             = g_m2_usa_active           ? request.security("ECONOMICS:USM2",     tf, close) : na
+float eu_m2             = g_m2_europe_active        ? getM2("ECONOMICS:EUM2",   "FX_IDC:EURUSD")        : na
+float china_m2          = g_m2_china_active         ? getM2("ECONOMICS:CNM2",   "FX_IDC:CNYUSD")        : na
+float japan_m2          = g_m2_japan_active         ? getM2("ECONOMICS:JPM2",   "FX_IDC:JPYUSD")        : na
+float uk_m2             = g_m2_uk_active            ? getM2("ECONOMICS:GBM2",   "FX_IDC:GBPUSD")        : na
+float canada_m2         = g_m2_canada_active        ? getM2("ECONOMICS:CAM2",   "FX_IDC:CADUSD")        : na
+float australia_m2      = g_m2_australia_active     ? getM2("ECONOMICS:AUM3",   "FX_IDC:AUDUSD")        : na
+float india_m2          = g_m2_india_active         ? getM2("ECONOMICS:INM2",   "FX_IDC:INRUSD")        : na
+float korea_m2          = g_m2_korea_active         ? getM2("ECONOMICS:KRM2",   "FX_IDC:KRWUSD")        : na
+float brazil_m2         = g_m2_brazil_active        ? getM2("ECONOMICS:BRM2",   "FX_IDC:BRLUSD")        : na
+float russia_m2         = g_m2_russia_active        ? getM2("ECONOMICS:RUM2",   "FX_IDC:RUBUSD")        : na
+float switzerland_m2    = g_m2_switzerland_active   ? getM2("ECONOMICS:CHM2", "FX_IDC:CHFUSD")          : na
+float mexico_m2         = g_m2_mexico_active        ? getM2("ECONOMICS:MXM2",   "FX_IDC:MXNUSD")        : na
+float indonesia_m2      = g_m2_indonesia_active     ? getM2("ECONOMICS:IDM2",   "FX_IDC:IDRUSD")        : na
+float turkey_m2         = g_m2_turkey_active        ? getM2("ECONOMICS:TRM2",   "FX_IDC:TRYUSD")        : na
+float saudi_m2          = g_m2_saudi_active         ? getM2("ECONOMICS:SAM2",   "FX_IDC:SARUSD")        : na
+float argentina_m2      = g_m2_argentina_active     ? getM2("ECONOMICS:ARM2",   "FX_IDC:ARSUSD")        : na
+float southafrica_m2    = g_m2_southafrica_active   ? getM2("ECONOMICS:ZAM2", "FX_IDC:ZARUSD")          : na
+float qatar_m2          = g_m2_qatar_active         ? getM2("ECONOMICS:QAM2", "FX_IDC:QARUSD")          : na
+
+// Aggregate total M2 (in trillions USD)
+float total_m2_trillion = (
+     nz(us_m2)
+     + nz(eu_m2) 
+     + nz(china_m2) 
+     + nz(japan_m2) 
+     + nz(uk_m2) 
+     + nz(canada_m2) 
+     + nz(australia_m2) 
+     + nz(india_m2) 
+     + nz(korea_m2) 
+     + nz(brazil_m2) 
+     + nz(russia_m2) 
+     + nz(switzerland_m2) 
+     + nz(mexico_m2) 
+     + nz(indonesia_m2) 
+     + nz(turkey_m2) 
+     + nz(saudi_m2) 
+     + nz(argentina_m2) 
+     + nz(southafrica_m2)
+     + nz(qatar_m2)
+     ) / 1000000000000
+
+// M2 Year-over-Year (YoY) Growth Rate (%)
+float m2_yoy = na
+if not na(total_m2_trillion) and not na(total_m2_trillion[52])
+    m2_yoy := ((total_m2_trillion - total_m2_trillion[52]) / total_m2_trillion[52]) * 100
+
+// Dynamic bar offset calculation
+float minutes_per_bar = 
+     timeframe.isminutes ? timeframe.multiplier * 1.0 :
+     timeframe.isdaily   ? timeframe.multiplier * 1440.0 :
+     timeframe.isweekly  ? timeframe.multiplier * 10080.0 :
+     timeframe.ismonthly ? timeframe.multiplier * 43200.0 : 1.0
+
+// Convert g_m2_offset_weeks to bar count
+int bars_offset = math.round(g_m2_offset_weeks * 7 * 1440 / minutes_per_bar)
+
+// Moving Average calculation
+float ma_value = na
+if g_m2_ma_enabled
+    ma_value := g_m2_ma_type == "SMA" ? ta.sma(total_m2_trillion, g_m2_ma_length) : g_m2_ma_type == "EMA" ? ta.ema(total_m2_trillion, g_m2_ma_length) : g_m2_ma_type == "WMA" ? ta.wma(total_m2_trillion, g_m2_ma_length) : na
+
+// Plot result
+plot(total_m2_trillion, title="Global M2 (Trillion USD)", color=g_m2_line_color, linewidth=2, offset=bars_offset)
+plot(g_m2_ma_enabled ? ma_value : na, title="Moving Average", color=g_m2_ma_color, linewidth=2, offset=bars_offset, style=plot.style_line)
+
+// Plot table
+var table m2_label = table.new(position.middle_right, 1, 1, bgcolor = color_transparent, border_width = 0)
+if barstate.islast
+    string label_text = "Global M2\n" +
+         str.tostring(total_m2_trillion, "#.##") + "T USD\n" +
+         str.tostring(m2_yoy, "#.##") + "% YoY"
+
+    table.cell(m2_label, 0, 0, text = label_text,
+         text_color = colors_black,
+         text_size = text_size(general_text),
+         text_font_family = font_style(general_font),
+         bgcolor = color_transparent,
+         text_halign = text.align_center,
+         text_valign = text.align_center)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and general_brand_show == false
+    var table brand = table.new(position.bottom_right, 1, 1, bgcolor = chart.bg_color)
+    table.cell(brand, 0, 0,  "© CandelaCharts", text_color = colors_gray, text_halign = text.align_center, text_size = text_size(general_text), text_font_family = font_style(general_font))
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #

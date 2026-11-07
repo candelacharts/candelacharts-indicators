@@ -1,0 +1,221 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © CandelaCharts
+
+//@version=6
+indicator(title = "CandelaCharts - Momentum Pulse", shorttitle = "CandelaCharts - Momentum Pulse")
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+// # Core -------------------------------------------------------------------- #
+colors_white                        = color.white
+colors_black                        = color.black
+colors_purple                       = color.purple
+colors_red                          = color.red
+colors_gray                         = color.gray
+colors_blue                         = color.blue
+colors_orange                       = color.orange
+colors_green                        = color.green
+color_transparent                   = #ffffff00
+
+// # Custom ------------------------------------------------------------------ #
+colors_cyan_dark                    = #089981
+colors_red_bright                   = #f23645
+colors_purple_dark                  = #7E57C2
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+// # General ----------------------------------------------------------------- #
+
+general_font            = input.string("Monospace", "Text             ", options = ["Default", "Monospace"], inline = "1.0", group = "General")
+general_text            = input.string("Tiny", "", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline = "1.0", group = "General", tooltip = "Customize global text size and style")
+general_brand_show      = input.bool(false, "Hide Brand", group = "General")
+
+// # Momentum Pulse ---------------------------------------------------------- #
+
+mp_lnt                  = input.int(21, "Length          ", minval=1, inline = "1.0", group = "Settings")
+mp_lvl1                 = input.float(25.0, "Level 1 (±)     ", minval=0.0, inline = "2.0", group = "Settings")
+mp_lvl2                 = input.float(50.0, "Level 2 (±)     ", minval=0.0, inline = "3.0", group = "Settings")
+mp_grad_sigma_k         = input.float(2.0, "Multiplier       ", minval=0.25, step=0.25, inline = "4.0", group = "Settings", tooltip = "Color range = ±(k × stdev of Momentum)")
+mp_show_mas             = input.bool(false, "Show MAs", inline = "5.0", group = "Settings")
+mp_show_lvls            = input.bool(false, "Show Levels", inline = "6.0", group = "Settings")
+mp_shade_inner          = input.bool(false, "Shade Inner Zone", inline = "7.0", group = "Settings", tooltip = "Shade Inner Zone (±Level 1)")
+mp_shade_outer          = input.bool(false, "Shade Outer Zone", inline = "8.0", group = "Settings", tooltip = "Shade Outer Zone (±Level 2)")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions   |
+// # ========================================================================= #
+
+//#region
+
+method text_size(string size) =>
+    out = switch size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        "Auto"   => size.auto
+    out
+
+method line_style(string style) =>
+    out = switch style
+        '⎯⎯⎯'  => line.style_solid
+        '----'   => line.style_dashed
+        '····'   => line.style_dotted
+
+method font_style(string font) =>
+    out = switch font
+        'Default'   => font.family_default
+        'Monospace' => font.family_monospace
+
+is_dark() =>
+    bg_color = chart.bg_color
+    r = color.r(bg_color)
+    g = color.g(bg_color)
+    b = color.b(bg_color)
+    luminosity = r + g + b
+    luminosity <= 383
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Algorithm   |
+// # ========================================================================= #
+
+//#region
+
+// Source & signals
+src = math.avg(ta.ema(hlc3, 5), hl2, math.avg(close, close[1]))
+mom = math.log(src / src[mp_lnt]) * 100.0
+ret = math.log(src / src[1])  * 100.0
+
+// Adaptive gradient coloring (single mode)
+// Range = ±(k × stdev(mom, Length))
+st_mom     = ta.stdev(mom, mp_lnt)
+grad_half  = nz(st_mom) * mp_grad_sigma_k
+grad_min   = -grad_half
+grad_max   =  grad_half
+grad_color = color.from_gradient(mom, grad_min, grad_max, color.orange, color.blue)
+
+// Main plots (pane)
+p_mom = plot(mom, "Momentum", grad_color, 2)
+// p_ret = plot(ret, "Impulse", color.new(color.gray, 30), style = plot.style_area)
+
+// Dynamic level lines via plot() so we can fill
+p0    = plot(0, title="Zero", color=color.new(color.gray, 0))
+p_l1p = plot(mp_show_lvls ?  mp_lvl1 : na, title="+Level 1", color=color.new(color.blue,   80))
+p_l1n = plot(mp_show_lvls ? -mp_lvl1 : na, title="-Level 1", color=color.new(color.orange, 80))
+p_l2p = plot(mp_show_lvls ?  mp_lvl2 : na, title="+Level 2", color=color.new(color.blue,   90))
+p_l2n = plot(mp_show_lvls ? -mp_lvl2 : na, title="-Level 2", color=color.new(color.orange, 90))
+
+// Shaded zones (global scope)
+fill(p_l1p, p_l1n, color = mp_shade_inner ? color.new(color.gray, 95) : na, title="Inner Band")
+fill(p_l2p, p_l1p, color = mp_shade_outer ? color.new(color.blue, 95) : na, title="Outer +")
+fill(p_l1n, p_l2n, color = mp_shade_outer ? color.new(color.orange, 95) : na, title="Outer -")
+
+// Optional overlays (price-pane MAs)
+manorm    = ta.sma(close, mp_lnt)
+madenoise = ta.sma(src,   mp_lnt)
+plot(mp_show_mas ? manorm : na,    "Normal MA",  color.new(color.blue,   50), force_overlay = true, display = display.pane, linewidth = 2)
+plot(mp_show_mas ? madenoise : na, "Smoothed MA",color.new(color.orange, 50), force_overlay = true, display = display.pane, linewidth = 2)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and general_brand_show == false
+    var table brand = table.new(position.bottom_right, 1, 1, bgcolor = chart.bg_color)
+    table.cell(brand, 0, 0,  "© CandelaCharts", text_color = colors_gray, text_halign = text.align_center, text_size = text_size(general_text), text_font_family = font_style(general_font))
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #

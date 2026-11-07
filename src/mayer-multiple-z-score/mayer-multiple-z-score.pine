@@ -1,0 +1,226 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © CandelaCharts
+
+//@version=6
+indicator(title = "CandelaCharts - Mayer Multiple Z-Score", shorttitle = "CandelaCharts - Mayer Multiple Z-Score", precision = 2, overlay = false)
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+// Core
+colors_white          = color.white
+colors_black          = color.black
+colors_gray           = color.gray
+colors_blue           = color.blue
+colors_orange         = color.orange
+colors_green          = color.green
+colors_red            = color.red
+color_transparent     = #00000000
+
+// Custom
+colors_cyan_dark      = #089981
+colors_red_bright     = #f23645
+colors_purple_dark    = #7E57C2
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+// # General ----------------------------------------------------------------- #
+
+general_font            = input.string("Monospace", "Text                         ", options=["Default", "Monospace"], inline="1.0", group = "General")
+general_text            = input.string("Tiny", "", options=["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline="1.0", group = "General", tooltip = "Text size")
+general_brand_show      = input.bool(false, "Hide Brand", group="General")
+
+// # BDT --------------------------------------------------------------------- #
+
+mmz_psma_length         = input.int(200, title="Price SMA Length     ", inline="1.0", group = "Settings")
+mmz_it_len              = input.int(14, title="Z-Score EMA Length ", minval = 1, inline="2.0", group = "Settings")
+mmz_overvalued          = input.float(2.0, title="Threshold                ", inline="3.0", group = "Settings")
+mmz_undervalue          = input.float(0.5, title="Undervalue              ", inline="4.0", group = "Settings")
+mmz_extremities_bg      = input.bool(false, title="Fill Extremities", inline="5.0", group = "Settings")
+mmz_bar_color           = input.bool(false, title="Bar Color", inline="6.0", group = "Settings")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions   |
+// # ========================================================================= #
+
+//#region
+
+text_size(size) =>
+    switch size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        => size.auto
+
+font_family(font) =>
+    switch font
+        "Default"   => font.family_default
+        "Monospace" => font.family_monospace
+
+// SMA that starts at the first bar (dynamic length until len is reached)
+sma_from_start(srcSeries, len) =>
+    cum   = ta.cum(srcSeries)          // cumulative sum of the source
+    bars  = bar_index + 1              // number of bars seen so far
+    denom = math.min(bars, len)        // denominator grows from 1..len, then stays at len
+    (cum - nz(cum[len], 0)) / denom    // cumulative avg until len bars, then classic rolling SMA
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Algorithm   |
+// # ========================================================================= #
+
+//#region
+
+// Mayer Multiple & Z-Score
+ma        = sma_from_start(close, mmz_psma_length)
+multiple  = close / ma
+
+top_bands    = mmz_overvalued
+bottom_bands = mmz_undervalue
+mean         = (top_bands + bottom_bands) / 2
+bands_range  = top_bands - bottom_bands
+std_dev      = bands_range != 0 ? bands_range / 6 : 0
+
+zScore = std_dev != 0 ? (multiple - mean) / std_dev : 0
+
+// IT_ZScore EMA (smoothed Z-Score)
+IT_ZScore = ta.ema(zScore, mmz_it_len)
+
+// Coloring and plots
+color_bar = color.from_gradient(zScore, -3, 3, color.blue, color.orange)
+
+// Main Z-Score
+plot(zScore, "Z-Score", color = color_bar, linewidth = 2)
+
+// Smoothed Z-Score (EMA)
+plot(IT_ZScore, "IT Z-Score EMA", color = color.new(color.black, 0), linewidth = 2)
+
+// Base line
+hline(0, "0 line", color.gray, linestyle = hline.style_dashed, linewidth = 1)
+
+// Orange side (positive values)
+hline(1,  "1 line",  color.rgb(255, 165, 0, 0),  linestyle = hline.style_dotted, linewidth = 1)
+hline(2,  "2 line",  color.rgb(255, 165, 0, 0),  linestyle = hline.style_dotted, linewidth = 1)
+hline(3,  "3 line",  color.rgb(255, 165, 0, 66), linestyle = hline.style_solid,  linewidth = 1)
+
+// Blue side (negative values)
+hline(-1, "-1 line", color.rgb(0, 0, 255, 0),  linestyle = hline.style_dotted, linewidth = 1)
+hline(-2, "-2 line", color.rgb(0, 0, 255, 0),  linestyle = hline.style_dotted, linewidth = 1)
+hline(-3, "-3 line", color.rgb(0, 0, 255, 66), linestyle = hline.style_solid,  linewidth = 1)
+
+// Single fills for the +2..+3 and -3..-2 bands (no bgcolor)
+// Hidden guide lines for fill only (keeps your visible guides unchanged)
+pos2_fill = hline( 2.0, "", display = display.none)
+pos3_fill = hline( 3.0, "", display = display.none)
+neg2_fill = hline(-2.0, "", display = display.none)
+neg3_fill = hline(-3.0, "", display = display.none)
+
+// One fill per band
+fill(pos2_fill, pos3_fill, color = mmz_extremities_bg ? color.new(colors_orange, 95) : na, title = "Band +2..+3")
+fill(neg3_fill, neg2_fill, color = mmz_extremities_bg ? color.new(colors_blue, 95) : na, title = "Band -3..-2")
+
+// Optional bar colorization
+barcolor(mmz_bar_color ? color_bar : na, title = "bar color")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and not general_brand_show
+    var table brand_table = table.new(position.bottom_right, 1, 1, bgcolor=chart.bg_color)
+    table.cell(brand_table, 0, 0, "© CandelaCharts", text_color=color.new(colors_gray, 30), text_halign=text.align_center, text_size=text_size(general_text), text_font_family=font_family(general_font))
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #

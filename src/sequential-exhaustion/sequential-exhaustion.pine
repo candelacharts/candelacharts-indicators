@@ -1,0 +1,337 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © CandelaCharts
+
+//@version=6
+indicator(title = "CandelaCharts - Sequential Exhaustion", shorttitle = "CandelaCharts - Sequential Exhaustion", overlay = false, precision = 2, max_lines_count = 500, max_labels_count = 500)
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+colors_white          = color.white
+colors_black          = color.black
+colors_gray           = color.gray
+colors_blue           = color.blue
+colors_orange         = color.orange
+colors_green          = color.green
+colors_red            = color.red
+colors_transparent    = #00000000
+
+// Custom
+colors_cyan_dark      = #089981
+colors_red_bright     = #f23645
+colors_orange_mid     = #FF9800
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+// # General ----------------------------------------------------------------- #
+
+general_font            = input.string("Monospace", "Text              ", options = ["Default", "Monospace"], inline = "1.0", group = "General")
+general_text            = input.string("Tiny", "", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline = "1.0", group = "General", tooltip = "Customize global text size and style")
+general_brand_show      = input.bool(false, "Hide Brand", group = "General")
+
+// # Settings ---------------------------------------------------------------- #
+
+dem_period              = input.int(13, "Period", minval = 1, group = "Settings")
+dem_smooth              = input.int(1, "Smoothing", minval = 1, maxval = 24, group = "Settings", tooltip = "Apply a moving average to smooth the oscillator line.")
+dem_ob_lvl              = input.float(0.7, "Overbought", minval = 0.5, maxval = 1.0, step = 0.05, group = "Settings")
+dem_os_lvl              = input.float(0.3, "Oversold", minval = 0.0, maxval = 0.5, step = 0.05, group = "Settings")
+dem_bar_color           = input.bool(false, "Bar Color", group = "Settings")
+
+// # Divergences ------------------------------------------------------------- #
+
+div_show                = input.bool(true, "Show     ", inline = "1.0", group = "Divergences")
+div_lookback            = input.int(5, "", inline = "1.0", minval = 1, group = "Divergences", tooltip = "Pivot lookback period.")
+div_bull_css            = input.color(colors_cyan_dark, "", inline = "1.0", group = "Divergences")
+div_bear_css            = input.color(colors_red_bright, "", inline = "1.0", group = "Divergences")
+
+// # Momentum Radar ---------------------------------------------------------- #
+
+tr_show                 = input.bool(true, "Show Momentum Radar", group = "Momentum Radar")
+tr_ob_sens              = input.float(0.15, "OB Depth", minval = 0.05, maxval = 0.3, step = 0.01, group = "Momentum Radar")
+tr_os_sens              = input.float(0.15, "OS Depth", minval = 0.05, maxval = 0.3, step = 0.01, group = "Momentum Radar", tooltip = "Controls how quickly the radar reaches maximum intensity as the oscillator enters extreme zones.")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   UDT   |
+// # ========================================================================= #
+
+//#region
+
+type UDT_Divergence
+    float top_osc = na
+    float bot_osc = na
+    float top_prc = na
+    float bot_prc = na
+    int   top_idx = na
+    int   bot_idx = na
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions   |
+// # ========================================================================= #
+
+//#region
+
+method text_size(string size) =>
+    out = switch size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        "Auto"   => size.auto
+    out
+
+method font_style(string font) =>
+    out = switch font
+        "Default"   => font.family_default
+        "Monospace" => font.family_monospace
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Algorithm   |
+// # ========================================================================= #
+
+//#region
+
+// DeMax calculation
+de_max = high > high[1] ? high - high[1] : 0
+
+// DeMin calculation
+de_min = low < low[1] ? low[1] - low : 0
+
+// Moving averages
+s_de_max = ta.sma(de_max, dem_period)
+s_de_min = ta.sma(de_min, dem_period)
+
+// Sequential Exhaustion Oscillator
+dem_raw = s_de_max / (s_de_max + s_de_min)
+dem     = dem_smooth > 1 ? ta.sma(dem_raw, dem_smooth) : dem_raw
+
+// Gradient color
+grad_col = na(dem) ? colors_gray : color.from_gradient(dem, dem_os_lvl, dem_ob_lvl, colors_cyan_dark, colors_red_bright)
+
+// Divergence Logic
+var div_state = UDT_Divergence.new()
+
+ph = ta.pivothigh(dem, div_lookback, div_lookback)
+pl = ta.pivotlow(dem, div_lookback, div_lookback)
+
+bool alert_bull_div = false
+bool alert_bear_div = false
+
+// Regular Bullish
+if not na(pl)
+    if pl > div_state.bot_osc and low[div_lookback] < div_state.bot_prc
+        alert_bull_div := true
+        if div_show
+            l_style = pl < dem_os_lvl ? line.style_solid : line.style_dashed
+            line.new(div_state.bot_idx, div_state.bot_osc, bar_index - div_lookback, pl, color = div_bull_css, width = 1, style = l_style)
+
+    div_state.bot_osc := pl
+    div_state.bot_prc := low[div_lookback]
+    div_state.bot_idx := bar_index - div_lookback
+
+// Regular Bearish
+if not na(ph)
+    if ph < div_state.top_osc and high[div_lookback] > div_state.top_prc
+        alert_bear_div := true
+        if div_show
+            l_style = ph > dem_ob_lvl ? line.style_solid : line.style_dashed
+            line.new(div_state.top_idx, div_state.top_osc, bar_index - div_lookback, ph, color = div_bear_css, width = 1, style = l_style)
+
+    div_state.top_osc := ph
+    div_state.top_prc := high[div_lookback]
+    div_state.top_idx := bar_index - div_lookback
+
+// Momentum Radar Logic (Proprietary Exhaustion)
+tr_up_state = dem > dem_ob_lvl
+tr_dn_state = dem < dem_os_lvl
+
+tr_strength_up = tr_up_state ? math.min((dem - dem_ob_lvl) / tr_ob_sens, 1.0) : 0.0
+tr_strength_dn = tr_dn_state ? math.min((dem_os_lvl - dem) / tr_os_sens, 1.0) : 0.0
+
+tr_alpha_up = 90 - int(tr_strength_up * 70)
+tr_alpha_dn = 90 - int(tr_strength_dn * 70)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Visuals / UI   |
+// # ========================================================================= #
+
+//#region
+
+// Main Sequential Exhaustion line
+plot(dem, "Sequential Exhaustion", color = grad_col, linewidth = 2)
+
+// Guide plots for fills
+p_ob = plot(dem_ob_lvl, "OB Guide", display = display.none, editable = false)
+p_os = plot(dem_os_lvl, "OS Guide", display = display.none, editable = false)
+p_hi = plot(1.0,        "HI Guide", display = display.none, editable = false)
+p_lo = plot(0.0,        "LO Guide", display = display.none, editable = false)
+
+// Zone fills
+fill(p_ob, p_hi, color = color.new(colors_red_bright, 92), title = "Overbought Zone")
+fill(p_lo, p_os, color = color.new(colors_cyan_dark,  92), title = "Oversold Zone")
+
+// Key levels
+hline(dem_ob_lvl, "Overbought", color = color.new(colors_red_bright, 40), linestyle = hline.style_dashed)
+hline(0.5,        "Midline",    color = color.new(colors_gray,       60), linestyle = hline.style_dotted)
+hline(dem_os_lvl, "Oversold",   color = color.new(colors_cyan_dark,  40), linestyle = hline.style_dashed)
+
+// Bar coloring
+barcolor(dem_bar_color ? grad_col : na, title = "Bar Color")
+
+// Divergence Signals
+plotshape(div_show and alert_bull_div ? dem[div_lookback] - 0.05 : na, "Bullish Divergence", shape.triangleup,   location.absolute, div_bull_css, -div_lookback, "", div_bull_css, size = size.tiny)
+plotshape(div_show and alert_bear_div ? dem[div_lookback] + 0.05 : na, "Bearish Divergence", shape.triangledown, location.absolute, div_bear_css, -div_lookback, "", div_bear_css, size = size.tiny)
+
+// Alerts
+if ta.crossunder(dem, dem_ob_lvl)
+    alert("Sequential Exhaustion crossed below Overbought level (" + str.tostring(dem_ob_lvl) + ")", alert.freq_once_per_bar)
+if ta.crossover(dem, dem_os_lvl)
+    alert("Sequential Exhaustion crossed above Oversold level (" + str.tostring(dem_os_lvl) + ")", alert.freq_once_per_bar)
+if alert_bull_div
+    alert("Sequential Exhaustion: Bullish Divergence Detected", alert.freq_once_per_bar)
+if alert_bear_div
+    alert("Sequential Exhaustion: Bearish Divergence Detected", alert.freq_once_per_bar)
+
+// Momentum Radar Plotting
+tr_band_pad  = 0.05
+tr_pos_level = 1.0 + tr_band_pad
+tr_neg_level = 0.0 - tr_band_pad
+
+tr_pos_series = tr_show and tr_up_state ? tr_pos_level : na
+tr_neg_series = tr_show and tr_dn_state ? tr_neg_level : na
+
+p_tr_pos = plot(tr_pos_series, color=na, display=display.none, title="Momentum Radar +")
+p_tr_neg = plot(tr_neg_series, color=na, display=display.none, title="Momentum Radar -")
+
+fill(p_tr_pos, p_hi, color = color.new(colors_red_bright, tr_alpha_up), title = "Momentum Radar Exhaustion High")
+fill(p_tr_neg, p_lo, color = color.new(colors_cyan_dark,  tr_alpha_dn), title = "Momentum Radar Exhaustion Low")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and not general_brand_show
+    var table brand = table.new(position.bottom_right, 1, 1, bgcolor = chart.bg_color)
+    table.cell(brand, 0, 0, "© CandelaCharts", text_color = color.new(colors_gray, 30), text_halign = text.align_center, text_size = general_text.text_size(), text_font_family = general_font.font_style())
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
