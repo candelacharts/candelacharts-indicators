@@ -1,0 +1,256 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © CandelaCharts
+
+//@version=6
+indicator("CandelaCharts - MVRV Ratio", shorttitle="CandelaCharts - MVRV Ratio", overlay=false, max_lines_count=500, scale=scale.left)
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+// # Core -------------------------------------------------------------------- #
+
+colors_white                        = color.white
+colors_black                        = color.black
+colors_purple                       = color.purple
+colors_red                          = color.red
+colors_gray                         = color.gray
+colors_blue                         = color.blue
+colors_orange                       = color.orange
+colors_green                        = color.green
+color_sth_rp_transparent            = #ffffff00
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+// # General ----------------------------------------------------------------- #
+
+general_font                            = input.string("Monospace", "Text                ", options = ["Default", "Monospace"], inline = "1.0", group = "General")
+general_text                            = input.string("Tiny", "", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline = "1.0", group = "General", tooltip = "Customize global text size and style")
+general_brand_show                      = input.bool(false, "Hide Brand", group = "General")
+
+// #  MVRV Ratio ------------------------------------------------------------- #
+
+mvrv_r_options                          = input.string("BTC", "Assets             ", options = ["BTC", "ETH"], inline = "1.0", group = "Settings")
+mvrv_r_bands_show                       = input.bool(true, "σ Bands   ", inline = "2.0", group = "Settings", tooltip = "Show σ Bands")
+mvrv_r_bands_length                     = input.int(200, "", minval=20, inline = "2.0", group = "Settings", tooltip = "Bands Lookback")
+mvrv_r_bgzones_show                     = input.bool(true, "Show Extreme Zones", inline = "3.0", group = "Settings")
+mvrv_r_range_show                       = input.bool(true, "Show Common Zone", inline = "4.0", group = "Settings")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions   |
+// # ========================================================================= #
+
+//#region
+
+method text_size(string size) =>
+    out = switch size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        "Auto"   => size.auto
+    out
+
+method line_style(string style) =>
+    out = switch style
+        '⎯⎯⎯'  => line.style_solid
+        '----'   => line.style_dashed
+        '····'   => line.style_dotted
+
+method font_style(string font) =>
+    out = switch font
+        'Default'   => font.family_default
+        'Monospace' => font.family_monospace
+
+is_dark() =>
+    bg_color = chart.bg_color
+
+    r = color.r(bg_color)
+    g = color.g(bg_color)
+    b = color.b(bg_color)
+    luminosity = r + g + b
+    is_dark = luminosity <= 383
+
+    is_dark
+
+// SMA that starts from the first bar (dynamic until len reached)
+sma_from_start(srcSeries, len) =>
+    cum   = ta.cum(srcSeries)                // cumulative sum
+    bars  = bar_index + 1                    // bars seen
+    denom = math.min(bars, len)              // denominator grows until len
+    (cum - nz(cum[len], 0)) / denom          // cumulative avg → SMA
+
+stdev_from_start(src, len) =>
+    sum    = ta.cum(na(src) ? 0 : src)
+    sum2   = ta.cum(na(src) ? 0 : src*src)
+    count  = ta.cum(na(src) ? 0 : 1)
+    n      = math.min(count, len)
+    win    = sum  - nz(sum[len])
+    win2   = sum2 - nz(sum2[len])
+    mean   = win / n
+    // population variance; switch to (n-1) if you want sample stdev
+    varPop = math.max(win2 / n - mean*mean, 0)
+    math.sqrt(varPop)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Algorithm   |
+// # ========================================================================= #
+
+//#region
+
+get_mvrv(sym, tf) =>
+    mvrv_feed = sym == "BTC" ? "INTOTHEBLOCK:BTC_MVRV" : sym == "ETH" ? "INTOTHEBLOCK:ETH_MVRV" : ""
+    mvrv_val = mvrv_feed != "" ? request.security(mvrv_feed, tf, close[barstate.isrealtime ? 0 : 1], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off) : na
+    mvrv_val
+
+// Non-repainting historical MVRV baseline
+mvrv_raw = get_mvrv(mvrv_r_options, timeframe.period)
+
+// Fetch asset price for real-time extrapolation
+string asset_sym = mvrv_r_options == "BTC" ? "BINANCE:BTCUSDT" : "BINANCE:ETHUSDT"
+float current_price = request.security(asset_sym, timeframe.period, close, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off, ignore_invalid_symbol=true)
+if na(current_price)
+    current_price := close
+
+// Identify when MVRV officially updates from the provider
+bool mvrv_updated = ta.change(mvrv_raw) != 0 or (na(mvrv_raw[1]) and not na(mvrv_raw))
+
+// Store the baseline values at the time of the update
+float mvrv_baseline = ta.valuewhen(mvrv_updated, mvrv_raw, 0)
+float price_baseline = ta.valuewhen(mvrv_updated, current_price, 0)
+
+// Real-time MVRV ratio calculation
+// MVRV_new = MVRV_old * (Price_new / Price_old)
+float mvrv_ratio = mvrv_raw
+if not na(mvrv_baseline) and not na(price_baseline) and price_baseline != 0
+    mvrv_ratio := mvrv_baseline * (current_price / price_baseline)
+
+mvrv_color = mvrv_ratio >= 3.5 ? color.blue : mvrv_ratio >= 2.5 ? color.blue : mvrv_ratio >= 1.0 ? color.blue : color.orange
+
+plot(mvrv_ratio, "MVRV Ratio", color=mvrv_color, linewidth=2)
+
+hline_35 = hline(3.5, "Potential Top (3.5)", color=color.blue, linestyle=hline.style_dashed, display= display.all)
+hline_25 = hline(2.5, "Overvalued (2.5)", color=color.gray, linestyle=hline.style_dashed, display= display.all)
+hline_10 = hline(1.0, "Fair Value (1.0)", color=color.gray, display= display.all)
+hline_08 = hline(0.8, "Potential Bottom (0.8)", color=color.orange, linestyle=hline.style_dashed, display= display.all)
+
+fill(hline_25, hline_10, color=mvrv_r_range_show ? color.new(color.blue, 95) : na, title="Background", display = display.all)
+
+hline_25_x = plot(2.5, color = na, editable = false, display = display.none)
+hline_10_x = plot(1.0, color = na, editable = false, display = display.none)
+fill(plot(mvrv_ratio), hline_25_x, 7, 2.5, top_color = color.new(color.blue, 0), bottom_color = color.new(color.blue, 100), title = "Overbought Gradient Fill")
+fill(plot(mvrv_ratio), hline_10_x, 1.0,  0,  top_color = color.new(color.orange, 100), bottom_color = color.new(color.orange, 0), title = "Oversold Gradient Fill")
+
+bgcolor(mvrv_r_bgzones_show ? (mvrv_ratio >= 3.5 ? color.new(color.orange, 80) : mvrv_ratio <= 0.8 ? color.new(color.blue, 80) : na) : na, title="Extreme Zones Highlight")
+
+// Bands
+bands_mean  = sma_from_start(mvrv_ratio, mvrv_r_bands_length)
+bands_stdev = stdev_from_start(mvrv_ratio, mvrv_r_bands_length)
+
+upper1 = bands_mean + bands_stdev * 1
+upper2 = bands_mean + bands_stdev * 2
+
+// Plot bands if enabled
+plot(mvrv_r_bands_show ? upper1 : na, "Upper 1σ", color=color.rgb(255, 157, 0), linewidth=2)
+plot(mvrv_r_bands_show ? upper2 : na, "Upper 2σ", color=color.red, linewidth=2)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and general_brand_show == false
+    var table brand = table.new(position.bottom_right, 1, 1, bgcolor = chart.bg_color)
+    table.cell(brand, 0, 0,  "© CandelaCharts", text_color = colors_gray, text_halign = text.align_center, text_size = text_size(general_text), text_font_family = font_style(general_font))
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #

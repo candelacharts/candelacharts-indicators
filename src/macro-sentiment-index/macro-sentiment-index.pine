@@ -1,0 +1,810 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © CandelaCharts
+
+//@version=6
+indicator("CandelaCharts - Macro Sentiment Index", "CandelaCharts - Macro Sentiment Index", overlay=false, max_lines_count=500)
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+// # Core -------------------------------------------------------------------- #
+
+colors_white                        = color.white
+colors_black                        = color.black
+colors_purple                       = color.purple
+colors_red                          = color.red
+colors_gray                         = color.gray
+colors_blue                         = color.blue
+colors_orange                       = color.orange
+colors_green                        = color.green
+color_transparent                   = #ffffff00
+
+// # Custom ------------------------------------------------------------------ #
+
+colors_cyan_dark                    = #089981
+colors_red_bright                   = #f23645
+colors_purple_dark                  = #7E57C2
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+// # General ----------------------------------------------------------------- #
+
+general_font                            = input.string("Monospace", "Text                       ", options = ["Default", "Monospace"], inline = "1.0", group = "General")
+general_text                            = input.string("Tiny", "", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline = "1.0", group = "General", tooltip = "Customize global text size and style")
+general_brand_show                      = input.bool(false, "Hide Brand", group = "General")
+
+// # MSI --------------------------------------------------------------------- #
+
+msi_lookback                            = input.int(60, title="Lookback                ", minval=10, maxval=200, inline = "1.0", group = "Settings", tooltip = "Lookback Period")
+msi_sentiment_bull_color                = input.color(colors_blue, "", inline = "1.0", group = "Settings")
+msi_sentiment_bear_color                = input.color(colors_orange, "", inline = "1.0", group = "Settings")
+msi_ma_show                             = input.bool(false, title="MA                  ", inline = "2.0", group = "Settings")
+msi_ma_type                             = input.string("SMA", title="", options = ["SMA", "EMA", "RMA", "VWMA"], inline = "2.0", group = "Settings")
+msi_ma_line_color                       = input.color(colors_black, "", inline = "2.0", group = "Settings")
+msi_ma_length                           = input.int(50, title="MA Smoothing         ", minval=1, maxval=200, inline = "3.0", group = "Settings", tooltip = "Moving Average Smoothing")
+msi_ma_line_width                       = input.int(2, "", minval = 1, maxval = 4, inline = "3.0", group = "Settings", tooltip = "Width of the Moving Average line")
+msi_correlation_length                  = input.int(20, title="Correlation              ", minval=5, maxval=200, inline = "4.0", group = "Settings", tooltip = "Correlation Length")
+msi_mode                                = input.string("Columns", title="Mode                       ", options = ["Columns", "Histogram", "Area", "Line"], inline = "5.0", group = "Settings")
+msi_table_show                          = input.bool(false, title="Show Table", inline = "5.0", group = "Settings")
+
+// Risk-On Assets
+msi_use_spy                             = input.bool(true, title="SPY Weight       ", inline="1.0", group = "Risk-On Assets & Weights")
+msi_spy_value                           = input.string("SPY", "", inline = "1.0", group = "Risk-On Assets & Weights")
+msi_spy_weight                          = input.float(1.2, title="", minval=0.1, maxval=3.0, step=0.1, inline="1.0", group = "Risk-On Assets & Weights", tooltip = "Include S&P 500 (SPY)")
+msi_use_em                              = input.bool(true, title="EEM Weight      ", inline="2.0", group = "Risk-On Assets & Weights")
+msi_em_value                            = input.string("EEM", "", inline = "2.0", group = "Risk-On Assets & Weights")
+msi_em_weight                           = input.float(0.9, title="", minval=0.1, maxval=3.0, step=0.1, inline="2.0", group = "Risk-On Assets & Weights", tooltip = "Include Emerging Markets (EEM)")
+msi_use_hyg                             = input.bool(true, title="HYG Weight      ", inline="3.0", group = "Risk-On Assets & Weights")
+msi_hyg_value                           = input.string("HYG", "", inline = "3.0", group = "Risk-On Assets & Weights")
+msi_hyg_weight                          = input.float(1.3, title="", minval=0.1, maxval=3.0, step=0.1, inline="3.0", group = "Risk-On Assets & Weights", tooltip = "Include High Yield Bonds (HYG)")
+msi_use_qqq                             = input.bool(true, title="NDX Weight       ", inline="4.0", group = "Risk-On Assets & Weights")
+msi_qqq_value                           = input.string("NDX", "", inline = "4.0", group = "Risk-On Assets & Weights")
+msi_qqq_weight                          = input.float(1.2, title="", minval=0.1, maxval=3.0, step=0.1, inline="4.0", group = "Risk-On Assets & Weights", tooltip = "Include NASDAQ-100 (QQQ) as tech risk proxy")
+msi_use_iwm                             = input.bool(true, title="IWM Weight       ", inline="5.0", group = "Risk-On Assets & Weights")
+msi_iwm_value                           = input.string("IWM", "", inline = "5.0", group = "Risk-On Assets & Weights")
+msi_iwm_weight                          = input.float(1.0, title="", minval=0.1, maxval=3.0, step=0.1, inline="5.0", group = "Risk-On Assets & Weights", tooltip = "Include Russell 2000 (IWM) for small-cap risk appetite")
+msi_use_copper                          = input.bool(true, title="HG Weight         ", inline="6.0", group = "Risk-On Assets & Weights")
+msi_copper_value                        = input.string("HG1!", "", inline = "6.0", group = "Risk-On Assets & Weights")
+msi_copper_weight                       = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="6.0", group = "Risk-On Assets & Weights", tooltip = "Include Copper (HG1!) as industrial demand proxy")
+msi_use_soxx                            = input.bool(true, title="SOXX Weight     ", inline="7.0", group = "Risk-On Assets & Weights")
+msi_soxx_value                          = input.string("SOXX", "", inline = "7.0", group = "Risk-On Assets & Weights")
+msi_soxx_weight                         = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="7.0", group = "Risk-On Assets & Weights", tooltip = "Include Semiconductors (SOXX) as forward-looking sector")
+msi_use_btc                             = input.bool(true, title="BTC Weight       ", inline="8.0", group = "Risk-On Assets & Weights")
+msi_btc_value                           = input.string("BTCUSD", "", inline = "8.0", group = "Risk-On Assets & Weights")
+msi_btc_weight                          = input.float(1.0, title="", minval=0.1, maxval=3.0, step=0.1, inline="8.0", group = "Risk-On Assets & Weights", tooltip = "Include Bitcoin (BTCUSD) as liquidity/risk proxy")
+
+// Risk-Off / Defensive Assets
+msi_use_vix                             = input.bool(true, title="VIX Weight        ", inline="1.0", group = "Risk-Off & Defensive")
+msi_vix_value                           = input.string("VIX", "", inline = "1.0", group = "Risk-Off & Defensive")
+msi_vix_weight                          = input.float(1.5, title="", minval=0.1, maxval=3.0, step=0.1, inline="1.0", group = "Risk-Off & Defensive", tooltip = "Include VIX Volatility")
+msi_use_put_call                        = input.bool(true, title="P/C Weight        ", inline="2.0", group = "Risk-Off & Defensive")
+msi_put_call_value                      = input.string("PC", "", inline = "2.0", group = "Risk-Off & Defensive")
+msi_put_call_weight                     = input.float(1.0, title="", minval=0.1, maxval=3.0, step=0.1, inline="2.0", group = "Risk-Off & Defensive", tooltip = "Include Put/Call Ratio")
+msi_use_gold                            = input.bool(true, title="GC Weight        ", inline="3.0", group = "Risk-Off & Defensive")
+msi_gold_value                          = input.string("GC1!", "", inline = "3.0", group = "Risk-Off & Defensive")
+msi_gold_weight                         = input.float(0.8, title="", minval=0.1, maxval=3.0, step=0.1, inline="3.0", group = "Risk-Off & Defensive", tooltip = "Include Gold (GC1!)")
+msi_use_tlt                             = input.bool(true, title="TLT Weight       ", inline="4.0", group = "Risk-Off & Defensive")
+msi_tlt_value                           = input.string("TLT", "", inline = "4.0", group = "Risk-Off & Defensive")
+msi_tlt_weight                          = input.float(1.2, title="", minval=0.1, maxval=3.0, step=0.1, inline="4.0", group = "Risk-Off & Defensive", tooltip = "Include Long-Term Treasuries (TLT)")
+msi_use_usdjpy                          = input.bool(false, title="JPY Weight       ", inline="5.0", group = "Risk-Off & Defensive")
+msi_usdjpy_value                        = input.string("USDJPY", "", inline = "5.0", group = "Risk-Off & Defensive")
+msi_usdjpy_weight                       = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="5.0", group = "Risk-Off & Defensive", tooltip = "Use USD/JPY as risk-off currency")
+msi_use_usdchf                          = input.bool(false, title="CHF Weight      ", inline="6.0", group = "Risk-Off & Defensive")
+msi_usdchf_value                        = input.string("USDCHF", "", inline = "6.0", group = "Risk-Off & Defensive")
+msi_usdchf_weight                       = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="6.0", group = "Risk-Off & Defensive", tooltip = "Use USD/CHF as defensive FX proxy")
+msi_use_xlu                             = input.bool(true, title="XLU Weight       ", inline="7.0", group = "Risk-Off & Defensive")
+msi_xlu_value                           = input.string("XLU", "", inline = "7.0", group = "Risk-Off & Defensive")
+msi_xlu_weight                          = input.float(0.9, title="", minval=0.1, maxval=3.0, step=0.1, inline="7.0", group = "Risk-Off & Defensive", tooltip = "Include Utilities ETF (XLU)")
+msi_use_xly                             = input.bool(true, title="XLY Weight       ", inline="8.0", group = "Risk-Off & Defensive")
+msi_xly_value                           = input.string("XLY", "", inline = "8.0", group = "Risk-Off & Defensive")
+msi_xly_weight                          = input.float(1.3, title="", minval=0.1, maxval=3.0, step=0.1, inline="8.0", group = "Risk-Off & Defensive", tooltip = "Include Utilities ETF (XLU)")
+msi_use_defensive_ratio                 = input.bool(true, title="XLU/XLY Ratio    ", inline="9.0", group = "Risk-Off & Defensive")
+msi_defensive_ratio_weight              = input.float(1.3, title="", minval=0.1, maxval=3.0, step=0.1, inline="9.0", group = "Risk-Off & Defensive", tooltip = "Use Utilities / Consumer Discretionary ratio")
+
+// Macro & Rates
+msi_use_yield                           = input.bool(true, title="TNX Weight       ", inline="1.0", group = "Macro & Interest Rate")
+msi_yield_value                         = input.string("TNX", "", inline = "1.0", group = "Macro & Interest Rate")
+msi_yield_weight                        = input.float(1.0, title="", minval=0.1, maxval=3.0, step=0.1, inline="1.0", group = "Macro & Interest Rate", tooltip = "Include 10Y Treasury Yield (TNX)")
+msi_use_yield_curve                     = input.bool(true, title="Yield Weight      ", inline="2.0", group = "Macro & Interest Rate")
+msi_yield_curve_value                   = input.string("TYX", "", inline = "2.0", group = "Macro & Interest Rate")
+msi_yield_curve_weight                  = input.float(1.4, title="", minval=0.1, maxval=3.0, step=0.1, inline="2.0", group = "Macro & Interest Rate", tooltip = "Include 10Y-2Y Spread")
+msi_use_usd                             = input.bool(true, title="DXY Weight       ", inline="3.0", group = "Macro & Interest Rate")
+msi_usd_value                           = input.string("DXY", "", inline = "3.0", group = "Macro & Interest Rate")
+msi_usd_weight                          = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="3.0", group = "Macro & Interest Rate", tooltip = "Include USD Index (DXY)")
+msi_use_bci                             = input.bool(true, title="BCI Weight        ", inline="4.0", group = "Macro & Interest Rate")
+msi_bci_value                           = input.string("AW", "", inline = "4.0", group = "Macro & Interest Rate")
+msi_bci_weight                          = input.float(0.7, title="", minval=0.1, maxval=3.0, step=0.1, inline="4.0", group = "Macro & Interest Rate", tooltip = "Include Bloomberg Commodity Index (BCOM)")
+// msi_use_m2                              = input.bool(true, title="M2 Weight        ", inline="5.0", group = "Macro & Interest Rate")
+// msi_m2_value                            = input.string("USM2", "", inline = "5.0", group = "Macro & Interest Rate")
+// msi_m2_weight                           = input.float(0.6, title="", minval=0.1, maxval=3.0, step=0.1, inline="5.0", group = "Macro & Interest Rate", tooltip = "Include M2 Money Supply")
+// msi_use_ted                             = input.bool(true, title="TED Spread       ", inline="6.0", group = "Macro & Interest Rate")
+// msi_ted_value                           = input.string("TEDRATE", "", inline = "6.0", group = "Macro & Interest Rate")
+// msi_ted_weight                          = input.float(1.4, title="", minval=0.1, maxval=3.0, step=0.1, inline="6.0", group = "Macro & Interest Rate", tooltip = "Include TED Spread (banking stress)")
+msi_use_move                            = input.bool(true, title="MOVE Weight     ", inline="7.0", group = "Macro & Interest Rate")
+msi_move_value                          = input.string("MOVE", "", inline = "7.0", group = "Macro & Interest Rate")
+msi_move_weight                         = input.float(1.3, title="", minval=0.1, maxval=3.0, step=0.1, inline="7.0", group = "Macro & Interest Rate", tooltip = "Include MOVE Index (bond volatility)")
+msi_use_breakeven                       = input.bool(true, title="TIP/TLT Weight   ", inline="9.0", group = "Macro & Interest Rate")
+msi_tip_value                           = input.string("TIP", "", inline = "9.0", group = "Macro & Interest Rate")
+msi_breakeven_weight                    = input.float(0.9, title="", minval=0.1, maxval=3.0, step=0.1, inline="9.0", group = "Macro & Interest Rate", tooltip = "Use TIP/TLT as breakeven inflation proxy")
+msi_use_oil                             = input.bool(false, title="CL Weight          ", inline="10.0", group = "Macro & Interest Rate")
+msi_oil_value                           = input.string("CL1!", "", inline = "10.0", group = "Macro & Interest Rate")
+msi_oil_weight                          = input.float(1.0, title="", minval=0.1, maxval=3.0, step=0.1, inline="10.0", group = "Macro & Interest Rate", tooltip = "Include Crude Oil (CL1!)")
+msi_use_bdiy                            = input.bool(true, title="BDI Weight         ", inline="11.0", group = "Macro & Interest Rate")
+msi_bdiy_value                          = input.string("BDI", "", inline = "11.0", group = "Macro & Interest Rate")
+msi_bdiy_weight                         = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="11.0", group = "Macro & Interest Rate", tooltip = "Include Baltic Dry Index (BDIY)")
+
+// // Central Bank & Policy
+msi_use_effr_futures                    = input.bool(true, title="FF1! Weight         ", inline="1.0", group = "Central Bank & Policy")
+msi_effr_value                          = input.string("FF1!", "", inline = "1.0", group = "Central Bank & Policy")
+msi_effr_weight                         = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="1.0", group = "Central Bank & Policy", tooltip = "Effective Fed Funds futures – rate expectations")
+msi_use_ed_futures                      = input.bool(true, title="ED1! Weight        ", inline="2.0", group = "Central Bank & Policy")
+msi_ed_value                            = input.string("ED1!", "", inline = "2.0", group = "Central Bank & Policy")
+msi_ed_weight                           = input.float(1.0, title="", minval=0.1, maxval=3.0, step=0.1, inline="2.0", group = "Central Bank & Policy", tooltip = "Eurodollar futures – liquidity & rate expectations")
+msi_use_sofr_futures                    = input.bool(true, title="SR3 Weight         ", inline="3.0", group = "Central Bank & Policy")
+msi_sofr_value                          = input.string("SR3", "", inline = "3.0", group = "Central Bank & Policy")
+msi_sofr_weight                         = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="3.0", group = "Central Bank & Policy", tooltip = "SOFR futures – new benchmark for rates")
+
+// // Cross-Asset Global Risk
+msi_use_emfx                            = input.bool(false, title="CEW Weight       ", inline="1.0", group = "Cross-Asset Global Risk")
+msi_emfx_value                          = input.string("CEW", "", inline = "1.0", group = "Cross-Asset Global Risk")
+msi_emfx_weight                         = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="1.0", group = "Cross-Asset Global Risk", tooltip = "Emerging Markets FX ETF – sensitive to global risk")
+msi_use_china_a50                       = input.bool(false, title="CN50 Weight     ", inline="2.0", group = "Cross-Asset Global Risk")
+msi_china_a50_value                     = input.string("CN50", "", inline = "2.0", group = "Cross-Asset Global Risk")
+msi_china_a50_weight                    = input.float(1.2, title="", minval=0.1, maxval=3.0, step=0.1, inline="2.0", group = "Cross-Asset Global Risk", tooltip = "China A50 – key proxy for global growth sentiment")
+msi_use_bund_yield                      = input.bool(false, title="DE10Y Weight    ", inline="3.0", group = "Cross-Asset Global Risk")
+msi_bund_yield_value                    = input.string("DE10Y", "", inline = "3.0", group = "Cross-Asset Global Risk")
+msi_bund_yield_weight                   = input.float(1.0, title="", minval=0.1, maxval=3.0, step=0.1, inline="3.0", group = "Cross-Asset Global Risk", tooltip = "German 10Y yield – Eurozone risk & global rate anchor")
+msi_use_btp_bund_spread                 = input.bool(false, title="BTP/Bund Weight", inline="4.0", group = "Cross-Asset Global Risk")
+msi_btp_bund_spread_value               = input.string("BTPBUND", "", inline = "4.0", group = "Cross-Asset Global Risk")
+msi_btp_bund_spread_weight              = input.float(1.4, title="", minval=0.1, maxval=3.0, step=0.1, inline="4.0", group = "Cross-Asset Global Risk", tooltip = "Italian vs German yield spread – Eurozone stress gauge")
+
+// // Volatility Indices (beyond VIX)
+msi_use_vvix                            = input.bool(true, title="VVIX Weight       ", inline="1.0", group = "Volatility Indices")
+msi_vvix_value                          = input.string("VVIX", "", inline = "1.0", group = "Volatility Indices")
+msi_vvix_weight                         = input.float(1.3, title="", minval=0.1, maxval=3.0, step=0.1, inline="1.0", group = "Volatility Indices", tooltip = "Volatility of VIX – 'fear of fear'")
+msi_use_vix_vvix_ratio                  = input.bool(true, title="VIX/VVIX Weight  ", inline="2.0", group = "Volatility Indices")
+msi_vix_vvix_ratio_weight               = input.float(1.2, title="", minval=0.1, maxval=3.0, step=0.1, inline="2.0", group = "Volatility Indices", tooltip = "Complacency signal – low ratio = extreme fear")
+
+// // Equity Internals
+// msi_use_ad_line                         = input.bool(true, title="A/D Line Weight   ", inline="1.0", group = "Equity Internals")
+// msi_ad_line_value                       = input.string("ADLINE", "", inline = "1.0", group = "Equity Internals")
+// msi_ad_line_weight                      = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="1.0", group = "Equity Internals", tooltip = "NYSE Advance/Decline Line – market breadth")
+// msi_use_vol_premium                     = input.bool(true, title="VIX/RV Weight     ", inline="2.0", group = "Equity Internals")
+// msi_vol_premium_weight                  = input.float(1.0, title="", minval=0.1, maxval=3.0, step=0.1, inline="2.0", group = "Equity Internals", tooltip = "VIX vs realized vol – measures complacency")
+// msi_use_skew                            = input.bool(true, title="SKEW Weight      ", inline="3.0", group = "Equity Internals")
+// msi_skew_value                          = input.string("SKEW", "", inline = "3.0", group = "Equity Internals")
+// msi_skew_weight                         = input.float(1.3, title="", minval=0.1, maxval=3.0, step=0.1, inline="3.0", group = "Equity Internals", tooltip = "Tail risk hedging demand – spikes before crashes")
+
+// Ratios
+msi_use_spy_tlt_ratio                   = input.bool(true, title="SPY/TLT Weight   ", inline="1.0", group = "Sentiment Ratios")
+msi_spy_tlt_ratio_weight                = input.float(1.5, title="", minval=0.1, maxval=3.0, step=0.1, inline="1.0", group = "Sentiment Ratios", tooltip = "Equities vs Bonds (classic risk-on/off)")
+msi_use_hyg_lqd_ratio                   = input.bool(true, title="HYG/LQD Weight ", inline="2.0", group = "Sentiment Ratios")
+msi_lqd_value                           = input.string("LQD", "", inline = "2.0", group = "Sentiment Ratios")
+msi_hyg_lqd_ratio_weight                = input.float(1.3, title="", minval=0.1, maxval=3.0, step=0.1, inline="2.0", group = "Sentiment Ratios", tooltip = "Junk vs IG credit risk appetite")
+msi_use_copper_gold_ratio               = input.bool(true, title="HG/GC Weight    ", inline="3.0", group = "Sentiment Ratios")
+msi_copper_gold_ratio_weight            = input.float(1.2, title="", minval=0.1, maxval=3.0, step=0.1, inline="3.0", group = "Sentiment Ratios", tooltip = "Growth vs Safe Haven")
+msi_use_audjpy                          = input.bool(false, title="AUDJPY Weight   ", inline="4.0", group = "Sentiment Ratios")
+msi_audjpy_value                        = input.string("AUDJPY", "", inline = "4.0", group = "Sentiment Ratios")
+msi_audjpy_weight                       = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="4.0", group = "Sentiment Ratios", tooltip = "FX carry trade barometer")
+msi_use_xly_xlp_ratio                   = input.bool(true, title="XLY/XLP Weight   ", inline="5.0", group = "Sentiment Ratios")
+msi_xlp_value                           = input.string("XLP", "", inline = "5.0", group = "Sentiment Ratios")
+msi_xly_xlp_ratio_weight                = input.float(1.3, title="", minval=0.1, maxval=3.0, step=0.1, inline="5.0", group = "Sentiment Ratios", tooltip = "Discretionary vs Staples consumption risk")
+msi_use_hyg_shy_ratio                   = input.bool(false, title="HYG/SHY Weight ", inline="6.0", group = "Sentiment Ratios")
+msi_shy_value                           = input.string("SHY", "", inline = "6.0", group = "Sentiment Ratios")
+msi_hyg_shy_ratio_weight                = input.float(1.3, title="", minval=0.1, maxval=3.0, step=0.1, inline="6.0", group = "Sentiment Ratios", tooltip = "Junk vs short-term Treasuries – cleaner credit stress")
+msi_use_dxy_gold_ratio                  = input.bool(true, title="DXY/GC Weight   ", inline="7.0", group = "Sentiment Ratios")
+msi_dxy_gold_ratio_weight               = input.float(1.4, title="", minval=0.1, maxval=3.0, step=0.1, inline="7.0", group = "Sentiment Ratios", tooltip = "Dollar vs gold – signals liquidity squeezes")
+msi_use_btc_gold_ratio                  = input.bool(true, title="BTC/GC Weight   ", inline="9.0", group = "Sentiment Ratios")
+msi_btc_gold_ratio_weight               = input.float(1.2, title="", minval=0.1, maxval=3.0, step=0.1, inline="9.0", group = "Sentiment Ratios", tooltip = "Crypto vs gold – risk-on vs traditional safe haven")
+msi_use_eem_spy_ratio                   = input.bool(false, title="EEM/SPY Weight  ", inline="10.0", group = "Sentiment Ratios")
+msi_eem_spy_ratio_weight                = input.float(1.1, title="", minval=0.1, maxval=3.0, step=0.1, inline="10.0", group = "Sentiment Ratios", tooltip = "EM vs US – global risk appetite")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions   |
+// # ========================================================================= #
+
+//#region
+
+method text_size(string size) =>
+    out = switch size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        "Auto"   => size.auto
+    out
+
+method line_style(string style) =>
+    out = switch style
+        '⎯⎯⎯'  => line.style_solid
+        '----'   => line.style_dashed
+        '····'   => line.style_dotted
+
+method font_style(string font) =>
+    out = switch font
+        'Default'   => font.family_default
+        'Monospace' => font.family_monospace
+        
+method table_position(string position) =>
+    out = switch position
+        "Bottom Center"     => position.bottom_center
+        "Bottom Left"       => position.bottom_left
+        "Bottom Right"      => position.bottom_right
+        "Middle Center"     => position.middle_center
+        "Middle Left"       => position.middle_left
+        "Middle Right"      => position.middle_right
+        "Top Center"        => position.top_center
+        "Top Left"          => position.top_left
+        "Top Right"         => position.top_right
+
+is_dark() =>
+    bg_color = chart.bg_color
+
+    r = color.r(bg_color)
+    g = color.g(bg_color)
+    b = color.b(bg_color)
+    luminosity = r + g + b
+    is_dark = luminosity <= 383
+
+    is_dark
+
+method ma(float source, length, MA_type) =>
+	switch MA_type
+		"SMA"  => ta.sma(source, length)
+		"EMA"  => ta.ema(source, length)
+		"RMA"  => ta.rma(source, length)
+		"VWMA" => ta.vwma(source, length)
+
+get_plot_style(style) =>
+    switch style
+        "Columns"       => plot.style_columns
+        "Histogram"     => plot.style_histogram
+        "Area"          => plot.style_area
+        "Line"          => plot.style_line
+        => plot.style_columns
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   MSI   |
+// # ========================================================================= #
+
+//#region
+
+fn_zscore(series, length) =>
+    m_a = ma(series, length, msi_ma_type)
+    stdev = ta.stdev(series, length)
+    stdev != 0 ? (series - m_a) / stdev : 0
+
+fn_performance(current, previous) =>
+    previous != 0 ? (current / previous - 1) * 100 : 0
+
+// Risk-On Assets
+[spy, spy_prev] = if msi_use_spy or msi_use_spy_tlt_ratio or msi_use_eem_spy_ratio
+    request.security(msi_spy_value, "D", [close, close[msi_lookback]], ignore_invalid_symbol=true)
+else
+    [float(na), float(na)]
+
+[eem, eem_prev] = if msi_use_em or msi_use_eem_spy_ratio
+    request.security(msi_em_value, "D", [close, close[msi_lookback]], ignore_invalid_symbol=true)
+else
+    [float(na), float(na)]
+
+hyg = msi_use_hyg or msi_use_hyg_lqd_ratio or msi_use_hyg_shy_ratio ? request.security(msi_hyg_value, "D", close, ignore_invalid_symbol=true) : na
+
+[qqq, qqq_prev] = if msi_use_qqq
+    request.security(msi_qqq_value, "D", [close, close[msi_lookback]], ignore_invalid_symbol=true)
+else
+    [float(na), float(na)]
+
+[iwm, iwm_prev] = if msi_use_iwm
+    request.security(msi_iwm_value, "D", [close, close[msi_lookback]], ignore_invalid_symbol=true)
+else
+    [float(na), float(na)]
+
+copper = msi_use_copper or msi_use_copper_gold_ratio ? request.security(msi_copper_value, "D", close, ignore_invalid_symbol=true) : na
+soxx = msi_use_soxx ? request.security(msi_soxx_value, "D", close, ignore_invalid_symbol=true) : na
+btc = msi_use_btc or msi_use_btc_gold_ratio ? request.security(msi_btc_value, "D", close, ignore_invalid_symbol=true) : na
+
+// Risk-Off Assets & Defensive
+vix = msi_use_vix or msi_use_vix_vvix_ratio ? request.security(msi_vix_value, "D", close, ignore_invalid_symbol=true) : na
+pcall = msi_use_put_call ? request.security(msi_put_call_value, "D", close, ignore_invalid_symbol=true) : na
+
+[gold, gold_prev] = if msi_use_gold or msi_use_copper_gold_ratio or msi_use_dxy_gold_ratio or msi_use_btc_gold_ratio
+    request.security(msi_gold_value, "D", [close, close[msi_lookback]], ignore_invalid_symbol=true)
+else
+    [float(na), float(na)]
+
+tlt = msi_use_tlt or msi_use_breakeven or msi_use_spy_tlt_ratio ? request.security(msi_tlt_value, "D", close, ignore_invalid_symbol=true) : na
+usdjpy = msi_use_usdjpy ? request.security(msi_usdjpy_value, "D", close, ignore_invalid_symbol=true) : na
+usdchf = msi_use_usdchf ? request.security(msi_usdchf_value, "D", close, ignore_invalid_symbol=true) : na
+xlu = msi_use_xlu or msi_use_defensive_ratio ? request.security(msi_xlu_value, "D", close, ignore_invalid_symbol=true) : na
+xly = msi_use_xly or msi_use_defensive_ratio or msi_use_xly_xlp_ratio ? request.security(msi_xly_value, "D", close, ignore_invalid_symbol=true) : na
+
+// Macro & Interest Rates
+tnx = msi_use_yield ? request.security(msi_yield_value, "D", close, ignore_invalid_symbol=true) : na
+tyx = msi_use_yield_curve ? request.security(msi_yield_curve_value, "D", close, ignore_invalid_symbol=true) : na
+fed = msi_use_yield_curve ? request.security("TVC:US02Y", "D", close, ignore_invalid_symbol=true) : na
+yield_curve = tnx - fed  // Approx 10Y - 2Y
+usd = msi_use_usd or msi_use_dxy_gold_ratio ? request.security(msi_usd_value, "D", close, ignore_invalid_symbol=true) : na
+bci = msi_use_bci ? request.security(msi_bci_value, "D", close, barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true) : na
+// m2 = msi_use_m2 ? request.security(msi_m2_value, "D", close, barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true) : na
+// ted = msi_use_ted ? request.security(msi_ted_value, "D", close, ignore_invalid_symbol=true) : na
+move = msi_use_move ? request.security(msi_move_value, "D", close, ignore_invalid_symbol=true) : na
+tip = msi_use_breakeven ? request.security(msi_tip_value, "D", close, ignore_invalid_symbol=true) : na
+oil = msi_use_oil ? request.security(msi_oil_value, "D", close, ignore_invalid_symbol=true) : na
+bdiy = msi_use_bdiy ? request.security(msi_bdiy_value, "D", close, ignore_invalid_symbol=true) : na
+
+// Central Bank & Policy
+effr = msi_use_effr_futures ? request.security(msi_effr_value, "D", close, ignore_invalid_symbol=true) : na
+ed_fut = msi_use_ed_futures ? request.security(msi_ed_value, "D", close, ignore_invalid_symbol=true) : na
+sofr_fut = msi_use_sofr_futures ? request.security(msi_sofr_value, "D", close, ignore_invalid_symbol=true) : na
+
+// Cross-Asset Global Risk
+emfx = msi_use_emfx ? request.security(msi_emfx_value, "D", close, ignore_invalid_symbol=true) : na
+china_a50 = msi_use_china_a50 ? request.security(msi_china_a50_value, "D", close, ignore_invalid_symbol=true) : na
+bund_yield = msi_use_bund_yield ? request.security(msi_bund_yield_value, "D", close, ignore_invalid_symbol=true) : na
+btp_bund_spread = msi_use_btp_bund_spread ? request.security(msi_btp_bund_spread_value, "D", close, ignore_invalid_symbol=true) : na
+
+// Volatility Indices
+vvix = msi_use_vvix or msi_use_vix_vvix_ratio ? request.security(msi_vvix_value, "D", close, ignore_invalid_symbol=true) : na
+vix_vvix_ratio = vix / vvix
+
+// Sentiment Ratios
+lqd = msi_use_hyg_lqd_ratio ? request.security(msi_lqd_value, "D", close, ignore_invalid_symbol=true) : na
+xlp = msi_use_xly_xlp_ratio ? request.security(msi_xlp_value, "D", close, ignore_invalid_symbol=true) : na
+shy = msi_use_hyg_shy_ratio ? request.security(msi_shy_value, "D", close, ignore_invalid_symbol=true) : na
+audjpy = msi_use_audjpy ? request.security(msi_audjpy_value, "D", close, ignore_invalid_symbol=true) : na
+
+spy_tlt_ratio = spy / tlt
+hyg_lqd_ratio = hyg / lqd
+copper_gold_ratio = copper / gold
+xly_xlp_ratio = xly / xlp
+hyg_shy_ratio = hyg / shy
+dxy_gold_ratio = usd / gold
+btc_gold_ratio = btc / gold
+eem_spy_ratio = eem / spy
+
+// Score Calculation
+var float[] scores = array.new_float(0)
+var float[] weights = array.new_float(0)
+array.clear(scores)
+array.clear(weights)
+
+// Risk-On Assets
+// SPY: Risk On asset performance
+if msi_use_spy and not na(spy) and not na(spy_prev)
+    perf = fn_performance(spy, spy_prev)
+    score = fn_zscore(perf, msi_lookback) * msi_spy_weight
+    array.push(scores, score)
+    array.push(weights, msi_spy_weight)
+
+// EEM: EM equities = Risk On
+if msi_use_em and not na(eem) and not na(eem_prev)
+    perf = fn_performance(eem, eem_prev)
+    score = fn_zscore(perf, msi_lookback) * msi_em_weight
+    array.push(scores, score)
+    array.push(weights, msi_em_weight)
+
+// HYG: Junk bonds = Risk On
+if msi_use_hyg and not na(hyg)
+    score = fn_zscore(hyg, msi_lookback) * msi_hyg_weight
+    array.push(scores, score)
+    array.push(weights, msi_hyg_weight)
+
+// QQQ: Tech growth proxy
+if msi_use_qqq and not na(qqq) and not na(qqq_prev)
+    perf = fn_performance(qqq, qqq_prev)
+    score = fn_zscore(perf, msi_lookback) * msi_qqq_weight
+    array.push(scores, score)
+    array.push(weights, msi_qqq_weight)
+
+// IWM: Small caps = higher risk sensitivity
+if msi_use_iwm and not na(iwm) and not na(iwm_prev)
+    perf = fn_performance(iwm, iwm_prev)
+    score = fn_zscore(perf, msi_lookback) * msi_iwm_weight
+    array.push(scores, score)
+    array.push(weights, msi_iwm_weight)
+
+// Copper: Industrial demand → growth proxy
+if msi_use_copper and not na(copper)
+    score = fn_zscore(copper, msi_lookback) * msi_copper_weight
+    array.push(scores, score)
+    array.push(weights, msi_copper_weight)
+
+// SOXX: Semiconductors = forward-looking risk
+if msi_use_soxx and not na(soxx)
+    score = fn_zscore(soxx, msi_lookback) * msi_soxx_weight
+    array.push(scores, score)
+    array.push(weights, msi_soxx_weight)
+
+// Bitcoin: Increasingly a liquidity/risk proxy
+if msi_use_btc and not na(btc)
+    score = fn_zscore(btc, msi_lookback) * msi_btc_weight
+    array.push(scores, score)
+    array.push(weights, msi_btc_weight)
+
+// Risk-Off Assets & Defensive
+// VIX: High = Risk Off → Negative z-score
+if msi_use_vix and not na(vix)
+    score = -fn_zscore(vix, msi_lookback) * msi_vix_weight
+    array.push(scores, score)
+    array.push(weights, msi_vix_weight)
+
+// Put/Call Ratio: High = Fear → Risk Off → negative z-score
+if msi_use_put_call and not na(pcall)
+    score = -fn_zscore(pcall, msi_lookback) * msi_put_call_weight
+    array.push(scores, score)
+    array.push(weights, msi_put_call_weight)
+
+// Gold: Safe haven → Rising = Risk Off → negative performance score
+if msi_use_gold and not na(gold) and not na(gold_prev)
+    perf = fn_performance(gold, gold_prev)
+    score = -fn_zscore(perf, msi_lookback) * msi_gold_weight
+    array.push(scores, score)
+    array.push(weights, msi_gold_weight)
+
+// USD Index: Stronger = Risk Off (usually) → negative
+if msi_use_usd and not na(usd)
+    score = -fn_zscore(usd, msi_lookback) * msi_usd_weight
+    array.push(scores, score)
+    array.push(weights, msi_usd_weight)
+    
+// TLT: Long bonds go up in risk-off → positive z-score
+if msi_use_tlt and not na(tlt)
+    score = fn_zscore(tlt, msi_lookback) * msi_tlt_weight
+    array.push(scores, score)
+    array.push(weights, msi_tlt_weight)
+
+// USDJPY: Falls in risk-off → negative z-score
+if msi_use_usdjpy and not na(usdjpy)
+    score = -fn_zscore(usdjpy, msi_lookback) * msi_usdjpy_weight
+    array.push(scores, score)
+    array.push(weights, msi_usdjpy_weight)
+
+// USDCHF: CHF strengthens in risk-off → negative z-score for USDCHF
+if msi_use_usdchf and not na(usdchf)
+    score = -fn_zscore(usdchf, msi_lookback) * msi_usdchf_weight
+    array.push(scores, score)
+    array.push(weights, msi_usdchf_weight)
+
+// XLU: Defensive flows → positive z-score
+if msi_use_xlu and not na(xlu)
+    score = fn_zscore(xlu, msi_lookback) * msi_xlu_weight
+    array.push(scores, score)
+    array.push(weights, msi_xlu_weight)
+
+// XLY: Defensive flows → positive z-score
+if msi_use_xly and not na(xly)
+    score = fn_zscore(xlu, msi_lookback) * msi_xly_weight
+    array.push(scores, score)
+    array.push(weights, msi_xly_weight)
+
+// XLU / XLY Ratio: Defensive rotation
+if msi_use_defensive_ratio and not na(xlu) and not na(xly)
+    ratio = xlu / xly
+    score = fn_zscore(ratio, msi_lookback) * msi_defensive_ratio_weight
+    array.push(scores, score)
+    array.push(weights, msi_defensive_ratio_weight)
+
+// Macro & Interest Rates
+// 10Y Yield: Rising = Risk Off (tightening), so negative
+if msi_use_yield and not na(tnx)
+    score = fn_zscore(tnx, msi_lookback) * msi_yield_weight
+    array.push(scores, score)
+    array.push(weights, msi_yield_weight)
+
+// Yield Curve (10Y - 5Y): Flattening/inversion = Risk Off
+if msi_use_yield_curve and not na(yield_curve)
+    score = fn_zscore(yield_curve, msi_lookback) * msi_yield_curve_weight
+    array.push(scores, score)
+    array.push(weights, msi_yield_curve_weight)
+
+// Bloomberg Commodity Index: Rising = Inflation/Risk On
+if msi_use_bci and not na(bci)
+    score = fn_zscore(bci, msi_lookback) * msi_bci_weight
+    array.push(scores, score)
+    array.push(weights, msi_bci_weight)
+
+// M2 Money Supply: Growth = Liquidity = Risk On
+// if msi_use_m2 and not na(m2)
+//     m2_z = fn_zscore(m2, msi_lookback)
+//     score = m2_z * msi_m2_weight
+//     array.push(scores, score)
+//     array.push(weights, msi_m2_weight)
+
+// TED Spread: Higher = stress → negative
+// if msi_use_ted and not na(ted)
+//     score = -fn_zscore(ted, msi_lookback) * msi_ted_weight
+//     array.push(scores, score)
+//     array.push(weights, msi_ted_weight)
+
+// MOVE Index: Bond volatility → risk-off when high → negative
+if msi_use_move and not na(move)
+    score = -fn_zscore(move, msi_lookback) * msi_move_weight
+    array.push(scores, score)
+    array.push(weights, msi_move_weight)
+
+// Breakeven Inflation (TIP/TLT)
+if msi_use_breakeven and not na(tip) and not na(tlt)
+    breakeven_ratio = tip / tlt
+    score = fn_zscore(breakeven_ratio, msi_lookback) * msi_breakeven_weight
+    array.push(scores, score)
+    array.push(weights, msi_breakeven_weight)
+
+// Oil: Mixed but generally growth/inflation → positive z-score
+if msi_use_oil and not na(oil)
+    score = fn_zscore(oil, msi_lookback) * msi_oil_weight
+    array.push(scores, score)
+    array.push(weights, msi_oil_weight)
+
+// BDIY: Global trade proxy → risk-on when rising
+if msi_use_bdiy and not na(bdiy)
+    score = fn_zscore(bdiy, msi_lookback) * msi_bdiy_weight
+    array.push(scores, score)
+    array.push(weights, msi_bdiy_weight)
+
+// Central Bank & Policy
+// Fed Funds Futures: Higher = tighter policy → risk-off → negative
+if msi_use_effr_futures and not na(effr)
+    score = -fn_zscore(effr, msi_lookback) * msi_effr_weight
+    array.push(scores, score)
+    array.push(weights, msi_effr_weight)
+
+// Eurodollar Futures: Lower price = expected rate cuts → risk-on → positive z-score
+if msi_use_ed_futures and not na(ed_fut)
+    score = fn_zscore(ed_fut, msi_lookback) * msi_ed_weight
+    array.push(scores, score)
+    array.push(weights, msi_ed_weight)
+
+// SOFR Futures: Similar to ED, rising = tightening → negative
+if msi_use_sofr_futures and not na(sofr_fut)
+    score = fn_zscore(sofr_fut, msi_lookback) * msi_sofr_weight
+    array.push(scores, score)
+    array.push(weights, msi_sofr_weight)
+
+// Cross-Asset Global Risk
+// EMFX (CEW): Falls in risk-off → positive z-score for performance
+if msi_use_emfx and not na(emfx)
+    score = fn_zscore(emfx, msi_lookback) * msi_emfx_weight
+    array.push(scores, score)
+    array.push(weights, msi_emfx_weight)
+
+// China A50: Proxy for global growth → positive
+if msi_use_china_a50 and not na(china_a50)
+    score = fn_zscore(china_a50, msi_lookback) * msi_china_a50_weight
+    array.push(scores, score)
+    array.push(weights, msi_china_a50_weight)
+
+// German Bund Yield: Falls in risk-off → negative z-score
+if msi_use_bund_yield and not na(bund_yield)
+    score = -fn_zscore(bund_yield, msi_lookback) * msi_bund_yield_weight
+    array.push(scores, score)
+    array.push(weights, msi_bund_yield_weight)
+
+// BTP-Bund Spread: Widens in stress → negative
+if msi_use_btp_bund_spread and not na(btp_bund_spread)
+    score = -fn_zscore(btp_bund_spread, msi_lookback) * msi_btp_bund_spread_weight
+    array.push(scores, score)
+    array.push(weights, msi_btp_bund_spread_weight)
+
+// Volatility Indices
+// VVIX: Spikes = fear amplification → negative
+if msi_use_vvix and not na(vvix)
+    score = -fn_zscore(vvix, msi_lookback) * msi_vvix_weight
+    array.push(scores, score)
+    array.push(weights, msi_vvix_weight)
+
+// VIX / VVIX Ratio: Low = extreme fear → positive when rising
+if msi_use_vix_vvix_ratio and not na(vix_vvix_ratio)
+    score = fn_zscore(vix_vvix_ratio, msi_lookback) * msi_vix_vvix_ratio_weight
+    array.push(scores, score)
+    array.push(weights, msi_vix_vvix_ratio_weight)
+
+// Equity Internals
+// // A/D Line: Weak breadth = fragility → positive z-score
+// if msi_use_ad_line and not na(ad_line)
+//     score = fn_zscore(ad_line, msi_lookback) * msi_ad_line_weight
+//     array.push(scores, score)
+//     array.push(weights, msi_ad_line_weight)
+
+// // Volatility Risk Premium (VIX / Realized): High = complacency → negative
+// if msi_use_vol_premium and not na(vol_premium_ratio)
+//     score = -fn_zscore(vol_premium_ratio, msi_lookback) * msi_vol_premium_weight
+//     array.push(scores, score)
+//     array.push(weights, msi_vol_premium_weight)
+
+// // SKEW Index: High = tail risk fear → negative
+// if msi_use_skew and not na(skew)
+//     score = -fn_zscore(skew, msi_lookback) * msi_skew_weight
+//     array.push(scores, score)
+//     array.push(weights, msi_skew_weight)
+
+// Sentiment Ratios
+// SPY / TLT: Equities vs Bonds
+if msi_use_spy_tlt_ratio and not na(spy_tlt_ratio)
+    score = fn_zscore(spy_tlt_ratio, msi_lookback) * msi_spy_tlt_ratio_weight
+    array.push(scores, score)
+    array.push(weights, msi_spy_tlt_ratio_weight)
+
+// HYG / LQD Ratio
+if msi_use_hyg_lqd_ratio and not na(hyg_lqd_ratio)
+    score = fn_zscore(hyg_lqd_ratio, msi_lookback) * msi_hyg_lqd_ratio_weight
+    array.push(scores, score)
+    array.push(weights, msi_hyg_lqd_ratio_weight)
+
+// Copper / Gold: Growth vs Safe Haven
+if msi_use_copper_gold_ratio and not na(copper_gold_ratio)
+    score = fn_zscore(copper_gold_ratio, msi_lookback) * msi_copper_gold_ratio_weight
+    array.push(scores, score)
+    array.push(weights, msi_copper_gold_ratio_weight)
+
+// AUDJPY: Carry trade barometer → risk-on when up
+if msi_use_audjpy and not na(audjpy)
+    score = fn_zscore(audjpy, msi_lookback) * msi_audjpy_weight
+    array.push(scores, score)
+    array.push(weights, msi_audjpy_weight)
+
+// XLY / XLP: Discretionary vs Staples
+if msi_use_xly_xlp_ratio and not na(xly_xlp_ratio)
+    score = fn_zscore(xly_xlp_ratio, msi_lookback) * msi_xly_xlp_ratio_weight
+    array.push(scores, score)
+    array.push(weights, msi_xly_xlp_ratio_weight)
+
+// HYG / SHY: Credit appetite → positive
+if msi_use_hyg_shy_ratio and not na(hyg_shy_ratio)
+    score = fn_zscore(hyg_shy_ratio, msi_lookback) * msi_hyg_shy_ratio_weight
+    array.push(scores, score)
+    array.push(weights, msi_hyg_shy_ratio_weight)
+
+// DXY / Gold: Liquidity squeeze when high → positive
+if msi_use_dxy_gold_ratio and not na(dxy_gold_ratio)
+    score = fn_zscore(dxy_gold_ratio, msi_lookback) * msi_dxy_gold_ratio_weight
+    array.push(scores, score)
+    array.push(weights, msi_dxy_gold_ratio_weight)
+
+// BTC / Gold: Risk-on liquidity vs safe haven → positive z-score
+if msi_use_btc_gold_ratio and not na(btc_gold_ratio)
+    score = fn_zscore(btc_gold_ratio, msi_lookback) * msi_btc_gold_ratio_weight
+    array.push(scores, score)
+    array.push(weights, msi_btc_gold_ratio_weight)
+
+// EEM / SPY: EM risk appetite → positive
+if msi_use_eem_spy_ratio and not na(eem_spy_ratio)
+    score = fn_zscore(eem_spy_ratio, msi_lookback) * msi_eem_spy_ratio_weight
+    array.push(scores, score)
+    array.push(weights, msi_eem_spy_ratio_weight)
+
+// Weighted Average Sentiment
+fn_weighted_avg(arr_scores, arr_weights) =>
+    float sum_score = 0
+    float sum_weight = 0
+    for i = 0 to array.size(arr_scores) - 1
+        sum_score += array.get(arr_scores, i)
+        sum_weight += array.get(arr_weights, i)
+    sum_weight != 0 ? sum_score / sum_weight : 0
+
+risk_score = fn_weighted_avg(scores, weights)
+risk_score_smoothed = ma(risk_score, msi_ma_length, msi_ma_type)
+
+// Plotting
+plot(risk_score, title="Raw Risk Sentiment", color=risk_score > 0 ? msi_sentiment_bull_color : msi_sentiment_bear_color, linewidth=2, style = get_plot_style(msi_mode))
+plot(msi_ma_show ? risk_score_smoothed : na, title="Smoothed Risk Sentiment", color=msi_ma_line_color, linewidth=msi_ma_line_width)
+
+top_hline=hline(1, title="Top Threshold", color=colors_gray, linestyle=hline.style_dashed)
+neutral_hline=hline(0, title="Neutral Threshold", color=colors_gray, linestyle=hline.style_dashed)
+bottom_hline=hline(-1, title="Bottom Threshold", color=colors_gray, linestyle=hline.style_dashed)
+
+fill(top_hline, bottom_hline, color=color.new(color.gray, 95), title="Background")
+
+// Background shading
+// bgcolor(risk_score > 0 ? color.new(color.green, 90) : color.new(color.red, 90))
+
+// Correlation Table
+price_change = close - close[1]
+corr = ta.correlation(price_change, risk_score, msi_correlation_length)
+
+if msi_table_show
+    var table corr_table = table.new(position.top_right, 2, 2, border_width=1, frame_color=color.gray, frame_width=1)
+    table.cell(corr_table, 0, 0, "Price vs Sentiment\nCorrelation", text_color=colors_blue, text_size=size.small)
+    table.cell(corr_table, 1, 0, str.tostring(corr, "#.##"), text_color=colors_blue, text_size=size.small)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and general_brand_show == false
+    var table brand = table.new(position.bottom_right, 1, 1, bgcolor = chart.bg_color)
+    table.cell(brand, 0, 0,  "© CandelaCharts", text_color = colors_gray, text_halign = text.align_center, text_size = text_size(general_text), text_font_family = font_style(general_font))
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #

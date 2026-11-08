@@ -1,0 +1,2382 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © CandelaCharts
+
+//@version=6
+indicator("CandelaCharts - Smart Money Concepts Go (SMC Go)", shorttitle = "CandelaCharts - Smart Money Concepts Go (SMC Go)", overlay = true, dynamic_requests = true, max_lines_count = 500, max_labels_count = 500, max_boxes_count = 500, max_polylines_count = 100, max_bars_back = 500)
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+// # Core -------------------------------------------------------------------- #
+
+colors_white                        = color.white
+colors_black                        = color.black
+colors_green                        = color.green
+colors_orange                       = color.orange
+colors_blue                         = color.blue
+colors_aqua                         = color.aqua
+colors_fuchsia                      = color.fuchsia
+colors_lime                         = color.lime
+colors_maroon                       = color.maroon
+colors_navy                         = color.navy
+colors_olive                        = color.olive
+colors_purple                       = color.purple
+colors_teal                         = color.teal
+colors_yellow                       = color.yellow
+colors_red                          = color.red
+colors_gray                         = color.gray
+colors_gray_90                      = color.new(color.gray, 90)
+colors_silver                       = color.silver
+colors_transparent                  = color.new(color.white,100)
+
+// # Custom ------------------------------------------------------------------ #
+
+colors_cyan_dark                    = #089981
+colors_red_bright                   = #f23645
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+// # General ----------------------------------------------------------------- #
+
+general_font                        = input.string("Monospace", "Text Style                  ", options = ["Default", "Monospace"], inline = "5", group = "General")
+general_text                        = input.string("Tiny", "", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline = "5", group = "General", tooltip = "Customize global text size and style")
+general_brand_show                  = input.bool(false, "Hide Brand", group = "General")
+
+// # Market Structure -------------------------------------------------------- #
+
+ms_enable                           = input.bool(true, "Show Market Structure", inline = "1", group = "Market Structure")
+ms_swing_point_show                 = input.bool(false, "Swing Points      ", inline = "2", group = "Market Structure", tooltip = "Display swing points and control UI options")
+ms_swing_point_label_size           = input.string("Tiny", "", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline = "2", group = "Market Structure")
+ms_swing_point_label_bull_css       = input.color(color.new(colors_cyan_dark , 80), "", inline = "2", group = "Market Structure")
+ms_swing_point_label_bear_css       = input.color(color.new(colors_red_bright , 80), "", inline = "2", group = "Market Structure")
+ms_show_swing                       = input.string("All", "Swing                       ", inline = "3", group = "Market Structure", options = ["All", "CHoCH", "CHoCH+", "BOS", "None"])
+ms_swing_lookback                   = input.int(50, "", inline = "3", group = "Market Structure", minval = 1)
+ms_swing_up_bos                     = input.color(colors_cyan_dark, "", inline = "3", group = "Market Structure")
+ms_swing_down_bos                   = input.color(colors_red_bright, "", inline = "3", group = "Market Structure")
+ms_show_internal                    = input.string("All", "Internal                     ", inline = "4", group = "Market Structure", options = ["All", "CHoCH", "CHoCH+", "BOS", "None"])
+ms_internal_lookback                = input.int(5, "", inline = "4", group = "Market Structure", minval = 1)
+ms_internal_up_bos                  = input.color(colors_cyan_dark, "", inline = "4", group = "Market Structure")
+ms_internal_down_bos                = input.color(colors_red_bright, "", inline = "4", group = "Market Structure")
+ms_mode                             = input.string("Adjusted", "Mode                        ", inline = "5", group = "Market Structure", options = ["Adjusted", "Algorithmic"], tooltip = "[Adjusted] Use selected lenght\n[Algorithmic] Use automatic lenght")
+ms_eqh_eql_show                     = input.bool(false, "Show EQH/EQL    ", inline = "6", group = "Market Structure", tooltip = "Display EQH and EQL")
+ms_eqh_eql_mode                     = input.string("Short Term", "", options = ["Short Term", "Intermediate Term", "Long Term"], inline = "6", group = "Market Structure")
+ms_eqh_eql_bear_css                 = input.color(colors_cyan_dark, "", inline = "6", group = "Market Structure")
+ms_eqh_eql_bull_css                 = input.color(colors_red_bright, "", inline = "6", group = "Market Structure")
+ms_plotcandle                       = input.bool(false, "Plot Candle", group = "Market Structure", tooltip = "Displays a cleaner colored candlestick chart in place of the default candles. (requires hiding the current ticker candles)")
+ms_barcolor                         = input.bool(false, "Bar Color", group = "Market Structure", tooltip = "Color the candle bodies according to market strucutre trend")
+
+// # Order Blocks ----------------------------------------------------------- #
+
+blocks_show                         = input.bool(true, "Show                 ", inline = "1", group = "Order Blocks", tooltip = "Display Blocks")
+blocks_type                         = input.string("Order Blocks", "", inline = "1", group = "Order Blocks", options = ["Order Blocks", "Swing Order Blocks"])
+blocks_bull_css                     = input.color(color.new(colors_cyan_dark , 90), "", inline = "1", group = "Order Blocks")
+blocks_bear_css                     = input.color(color.new(colors_red_bright , 90), "", inline = "1", group = "Order Blocks")
+blocks_num                          = input.int(5, "Last                          ", inline = "2", group = "Order Blocks", minval = 1, maxval = 10, tooltip = "Adjust how many Blocks you want to see")
+blocks_filter                       = input.string("None", "Filtering                     ", inline = "6", group = "Order Blocks", tooltip = "Filter out blocks by BOS/CHoCH/CHoCH+", options = ["None", "BOS", "CHoCH", "CHoCH+"])
+blocks_mitigation                   = input.string("None", "Mitigation                  ", inline = "7", group = "Order Blocks", options = ["None", "Wick", "Average"], tooltip = "Mitigated blocks are highlighted in a different color and removed only when the candle closes above or below the block.\n\n[Wick] When the low breaches the bottom for bullish Block or the high breaches the top for bearish Block.\n[Average] When the close is below the midpoint for bullish Block or above it for bearish Block")
+blocks_mitigation_css               = input.color(color.new(colors_purple, 90), "", inline = "7", group = "Order Blocks")
+blocks_position                     = input.string("Accurate", "Positioning                ", inline = "8", group = "Order Blocks", tooltip = "Position of the Order Block\n[Full] Cover the whole candle\n[Middle] Cover half candle\n[Accurate] Adjust to volatility\n[Precise] Same as Accurate but more precise", options = ["Full", "Middle", "Accurate", "Precise"])
+blocks_timeframe                    = input.timeframe("", "Timeframe                ", inline = "9", group = "Order Blocks", tooltip = "Timeframe of the block")
+blocks_use_middle_line              = input.bool(true, "Show Mid-Line   ", inline = "10", group = "Order Blocks")
+blocks_use_middle_line_type         = input.string("····", "", inline = "10", group = "Order Blocks", options = ['⎯⎯⎯', '----', '····'], tooltip = "Show mid-line blocks")
+blocks_use_middle_line_width        = input.int(1, "", inline = "10", group = "Order Blocks", minval = 1, maxval = 10)
+blocks_use_border                   = input.bool(false, "Show Border      ", inline = "11", group = "Order Blocks")
+blocks_use_border_type              = input.string("⎯⎯⎯", "", inline = "11", group = "Order Blocks", options = ['⎯⎯⎯', '----', '····'], tooltip = "Show border")
+blocks_use_border_width             = input.int(1, "", inline = "11", group = "Order Blocks", minval = 0, maxval = 10)
+blocks_show_buy_sell_activity       = input.bool(true, "Buy/Sell Activity  ", inline = "12", group = "Order Blocks", tooltip = "Display volume metrics that have formed the block")
+blocks_metric_bull_css              = input.color(color.new(colors_cyan_dark, 40), "", inline = "12", group = "Order Blocks")
+blocks_metric_bear_css              = input.color(color.new(colors_red_bright, 40), "", inline = "12", group = "Order Blocks")
+blocks_show_metrics                 = input.bool(true, "Show Metrics", group = "Order Blocks", tooltip = "Show volume associated with the block and his relevance")
+blocks_use_overlap                  = input.bool(true, "Hide Overlap", inline = "5", group = "Order Blocks")
+blocks_use_grayscale                = input.bool(false, "Grayscale", group = "Order Blocks", tooltip = "Use gray as basic blocks color")
+
+// # Fair Value Gaps -------------------------------------------------------- #
+
+imbalance_enable                    = input.bool(false, "Show    ", inline = "1", group = "Fair Value Gaps", tooltip = "Display imbalance")
+imbalance_type                      = input.string("FVG", "             ", inline = "1", group = "Fair Value Gaps", tooltip = "Display imbalance", options = ["FVG", "OG"])
+imbalance_bull_css                  = input.color(color.new(colors_cyan_dark, 80), "", inline = "1", group = "Fair Value Gaps")
+imbalance_bear_css                  = input.color(color.new(colors_red_bright, 80), "", inline = "1", group = "Fair Value Gaps")
+imbalance_num                       = input.int(5, "Show Last                  ", inline = "2", group = "Fair Value Gaps", tooltip = "Number of imbalances to show", minval = 1)
+imbalance_length                    = input.int(10, "Length                       ", inline = "3", group = "Fair Value Gaps", tooltip = "Extend the display of the imbalance", minval = 1)
+imbalance_mitigation                = input.string("None", "Mitigation                  ", inline = "4", group = "Fair Value Gaps", options = ["None", "Wick", "Average"], tooltip = "Mitigated imbalances are highlighted in a different color and removed only when the candle closes above or below the imbalance.\n\n[Wick] When the low breaches the bottom for bullish Imbalance or the high breaches the top for bearish Imbalance.\n[Average] When the close is below the midpoint for bullish Imbalance or above it for bearish Imbalance")
+imbalance_mitigation_css            = input.color(color.new(colors_purple, 80), "", inline = "4", group = "Fair Value Gaps")
+imbalance_timeframe                 = input.timeframe("", "Timeframe                 ", inline = "5", group = "Fair Value Gaps", tooltip = "Timeframe of the imbalance")
+imbalance_threshold                 = input.float(0, "Threshold                   ", tooltip = "Filter out non significative imbalances", group = "Fair Value Gaps", inline = "6", minval = 0, maxval = 2, step = 0.1)
+imbalance_midline                   = input.bool(true, "Show Mid-Line   ", inline = "7" , group = "Fair Value Gaps")
+imbalance_midline_type              = input.string("⎯⎯⎯", "", inline = "7", group = "Fair Value Gaps", options = ['⎯⎯⎯', '----', '····'], tooltip = "Show imbalance mid-line")
+imbalance_midline_width             = input.int(1, "", inline = "7", group = "Fair Value Gaps", tooltip = "Change mid-line imbalance width")
+imbalance_midline_bull_css          = input.color(colors_cyan_dark, "", inline = "7", group = "Fair Value Gaps")
+imbalance_midline_bear_css          = input.color(colors_red_bright, "", inline = "7", group = "Fair Value Gaps")
+imbalance_border                    = input.bool(false, "Show Border      ", inline = "8", group = "Fair Value Gaps")
+imbalance_border_type               = input.string("⎯⎯⎯", "", inline = "8", group = "Fair Value Gaps", options = ['⎯⎯⎯', '----', '····'], tooltip = "Show border")
+imbalance_border_width              = input.int(1, "", inline = "8", group = "Fair Value Gaps", minval = 0, maxval = 10)
+imbalance_border_bull_css           = input.color(colors_cyan_dark, "", inline = "8", group = "Fair Value Gaps")
+imbalance_border_bear_css           = input.color(colors_red_bright, "", inline = "8", group = "Fair Value Gaps")
+imbalance_overlap                   = input.bool(false, "Hide Overlap", "Hide overlapping imbalances", group = "Fair Value Gaps")
+imbalance_extend                    = input.bool(false, "Extend", group = "Fair Value Gaps", tooltip = "Extend imbalance length till current bar")
+imbalance_elongate                  = input.bool(false, "Elongate", group = "Fair Value Gaps", tooltip = "Extend imbalance length full to the right")
+
+// # Premium & Discount ---------------------------------------------------- #
+
+pd_premium_discount_show            = input.bool(false, "Premium & Discount", inline = "1", group = "Premium & Discount")
+pd_premium_css                      = input.color(colors_red, "", inline = "1", group = "Premium & Discount")
+pd_equilibrum_css                   = input.color(colors_gray, "", inline = "1", group = "Premium & Discount")
+pd_discount_css                     = input.color(colors_green, "", inline = "1", group = "Premium & Discount")
+pd_equilibrium_show                 = input.bool(false, "Show Equilibrium", inline = "2", group = "Premium & Discount")
+pd_strong_weak_high_low             = input.bool(false, "Show Strong/Weak High/Low         ", inline = "3", group = 'Premium & Discount')
+
+// # Pivots ---------------------------------------------------------------- #
+
+hl_daily                            = input.bool(false, "Day                     ", inline = "1", group = "Pivots")
+hl_weekly                           = input.bool(false, "Week                   ", inline = "2", group = "Pivots")
+hl_monthly                          = input.bool(false, "Month                  ", inline = "3", group = "Pivots")
+hl_quartely                         = input.bool(false, "Quarter                ", inline = "4", group = "Pivots")
+hl_yearly                           = input.bool(false, "Year                     ", inline = "5", group = "Pivots")
+hl_line_daily                       = input.string('⎯⎯⎯', '', inline = '1', group = "Pivots", options = ['⎯⎯⎯', '----', '····'])
+hl_line_weekly                      = input.string('⎯⎯⎯', '', inline = '2', group = "Pivots", options = ['⎯⎯⎯', '----', '····'])
+hl_line_monthly                     = input.string('⎯⎯⎯', '', inline = '3', group = "Pivots", options = ['⎯⎯⎯', '----', '····'])
+hl_line_quaterly                    = input.string('⎯⎯⎯', '', inline = '4', group = "Pivots", options = ['⎯⎯⎯', '----', '····'])
+hl_line_yearly                      = input.string('⎯⎯⎯', '', inline = '5', group = "Pivots", options = ['⎯⎯⎯', '----', '····'])
+hl_line_width_daily                 = input.int(1, '', inline = '1', group = "Pivots", minval = 1, maxval = 5)
+hl_line_width_weekly                = input.int(1, '', inline = '2', group = "Pivots", minval = 1, maxval = 5)
+hl_line_width_monthly               = input.int(1, '', inline = '3', group = "Pivots", minval = 1, maxval = 5)
+hl_line_width_quaterly              = input.int(1, '', inline = '4', group = "Pivots", minval = 1, maxval = 5)
+hl_line_width_yearly                = input.int(1, '', inline = '5', group = "Pivots", minval = 1, maxval = 5)
+hl_css_daily                        = input.color(colors_blue, "", inline = "1", group = "Pivots")
+hl_css_weekly                       = input.color(colors_orange, "", inline = "2", group = "Pivots")
+hl_css_monthly                      = input.color(colors_aqua, "", inline = "3", group = "Pivots")
+hl_css_quaterly                     = input.color(colors_green, "", inline = "4", group = "Pivots")
+hl_css_yearly                       = input.color(colors_gray, "", inline = "5", group = "Pivots")
+
+// # Scanners --------------------------------------------------------------- #
+
+scanner_mtf_show                    = input.bool(false, "MTF Scanner        ", inline = "1", group = "Scanners", tooltip = "Display Multi-Timeframe Market Structure Trend Directions")
+scanner_mtf_position                = input.string("Top Right", "", options = ["Bottom Center", "Bottom Right", "Middle Center", "Middle Left", "Middle Right", "Top Center", "Top Left", "Top Right"], inline = "1", group = "Scanners")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   UDT   |
+// # ========================================================================= #
+
+//#region
+
+type UDT_Bar
+    float   o = open
+    float   c = close
+    float   h = high
+    float   l = low
+    float   v = volume
+    int     n = bar_index
+    int     t = time
+
+type UDT_Zphl
+    bool   scross
+    bool   icross
+    string txt
+    float  x
+    float  y
+    float  t
+    int    tx
+    float  ix
+    float  iy
+    float  vol
+
+type UDT_MS_PNL
+	float[] p
+	int  [] n
+    float[] l
+
+type UDT_MS
+    int    trend
+    bool   is_bull_ob
+    bool   is_bear_ob
+	int    x1
+    int    x2
+	float  p
+    int    xloc
+	color  css
+	string ms_type
+	bool   bull
+    bool   swing
+    bool   sweep
+
+type UDT_EHL
+    int    x1
+    float  y1
+    int    x2
+    float  y2
+    bool   bull
+
+type UDT_Alerts
+    // Market Structure
+    bool chochswing     = false
+    bool chochplusswing = false
+    bool swingbos       = false
+    bool chochplus      = false
+    bool choch          = false
+    bool bos            = false
+    bool ehl            = false
+    // Order Blocks
+    bool ob             = false
+    bool obtouch        = false
+    bool swing_ob       = false
+    // Imbalances
+    bool fvg            = false
+    bool og             = false
+
+type UDT_Store
+    line    [] ehl_ln
+    label   [] ehl_lbl
+    box     [] imbalance_box
+    line    [] imbalance_ln
+    box     [] ob_box
+    line    [] ob_ln
+    line    [] ms_ln
+    label   [] ms_lbl
+    line    [] hl_ln
+    label   [] hl_lbl
+    line    [] phl_ln
+    label   [] phl_lbl
+    box     [] phl_box
+    
+type UDT_Pivot_Point
+    float highest_high
+    float lowest_low
+    int   lowest_low_n
+    int   highest_high_n
+    int   i_highest_high
+    int   i_lowest_low
+
+type UDT_Block
+    int     id          = na
+    int     left        = na
+    float   top         = na
+    int     right       = na
+    float   bottom      = na
+    float   mid         = na
+    bool    bull        = false
+    int     state       = na
+    bool    breaker     = false
+    int     x_inv_point = na
+    bool    mitigated   = false
+    bool    invalidated = false
+    bool    alert_fired = false
+
+type UDT_Volume
+    int ob_id   = na
+    float vol   = na
+    float vol_percent = na
+    int   wM    = na
+    int   blVP  = na
+    int   brVP  = na
+    bool  dir   = false
+
+type UDT_Scanner
+    float   value
+    string  value_f
+    float   bullish_value
+    float   bearish_value
+    bool    is_bullish
+    bool    is_bearish
+
+type UDT_MTF
+    int x1   = na
+    int x2   = na
+    float y1 = na
+    float y2 = na
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Store   |
+// # ========================================================================= #
+
+//#region
+
+var UDT_Store bin = UDT_Store.new(
+                   ehl_ln = array.new<line>()
+                 , ehl_lbl = array.new<label>()
+                 , imbalance_box = array.new<box>()
+                 , imbalance_ln  = array.new<line>()
+                 , ob_box = array.new<box>()
+                 , ob_ln  = array.new<line>()
+                 , ms_ln  = array.new<line>()
+                 , ms_lbl = array.new<label>()
+                 , hl_ln = array.new<line>()
+                 , hl_lbl = array.new<label>()
+                 , phl_ln = array.new<line>()
+                 , phl_lbl = array.new<label>()
+                 , phl_box = array.new<box>()
+                 )
+
+method clean_ehl(UDT_Store store) =>
+    for obj in store.ehl_ln
+        obj.delete()
+    for obj in store.ehl_lbl
+        obj.delete()
+
+    store.ehl_ln.clear()
+    store.ehl_lbl.clear()
+
+method clean_imbalance(UDT_Store store) =>
+    for obj in store.imbalance_box
+        obj.delete()
+    for obj in store.imbalance_ln
+        obj.delete()
+        
+    store.imbalance_box.clear()
+    store.imbalance_ln.clear()
+
+method clean_ob(UDT_Store store) =>
+    for obj in store.ob_box
+        obj.delete()
+    for obj in store.ob_ln
+        obj.delete()
+        
+    store.ob_box.clear()
+    store.ob_ln.clear()
+
+method clean_ms(UDT_Store store) =>
+    for obj in store.ms_lbl
+        obj.delete()
+    for obj in store.ms_ln
+        obj.delete()
+        
+    store.ms_lbl.clear()
+    store.ms_ln.clear()
+
+method clean_hl(UDT_Store store) =>
+    for obj in store.hl_ln
+        obj.delete()
+    for obj in store.hl_lbl
+        obj.delete()
+
+    store.hl_ln.clear()
+    store.hl_lbl.clear()
+
+method clean_phl(UDT_Store store) =>
+    for obj in store.phl_box
+        obj.delete()
+    for obj in store.phl_ln
+        obj.delete()
+    for obj in store.phl_lbl
+        obj.delete()
+
+    store.phl_box.clear()
+    store.phl_ln.clear()
+    store.phl_lbl.clear()
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Alerts   |
+// # ========================================================================= #
+
+//#region
+
+method enable_ms_alerts(UDT_Alerts alerts, bool enabled, string ms_type, bool swing) =>
+    if enabled
+
+        if swing
+
+            switch ms_type
+                "CHoCH+" => alerts.chochplusswing := true
+                "CHoCH"  => alerts.chochswing := true
+                "BOS"    => alerts.swingbos := true
+                => na
+            
+        else
+            
+            switch ms_type
+                "CHoCH+" => alerts.chochplus := true
+                "CHoCH"  => alerts.choch := true
+                "BOS"    => alerts.bos := true
+                => na
+    alerts
+
+method enable_liquidity_ehl_alerts(UDT_Alerts alerts, UDT_EHL ehl) =>
+    if not na(ehl)
+        alerts.ehl := true
+    alerts
+
+method enable_ob_alerts(UDT_Alerts alerts, UDT_Block block) =>
+    if not na(block)
+        if not block.invalidated
+            alerts.ob := true
+            if block.bull ? ta.crossunder(low, block.top) : ta.crossover (high, block.bottom)
+                alerts.obtouch := true
+            block.alert_fired := true
+    alerts
+
+method enable_swing_ob_alerts(UDT_Alerts alerts, UDT_Block block) =>
+    if not na(block)
+        if not block.invalidated
+            alerts.swing_ob := true
+            block.alert_fired := true
+    alerts
+
+method enable_imbalance_fvg_alerts(UDT_Alerts alerts, UDT_Block block) =>
+    if not na(block)
+        if not block.invalidated
+            alerts.fvg := true
+            block.alert_fired := true
+    alerts
+
+method enable_imbalance_og_alerts(UDT_Alerts alerts, UDT_Block block) =>
+    if not na(block)
+        if not block.invalidated
+            alerts.og := true
+            block.alert_fired := true
+    alerts
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions   |
+// # ========================================================================= #
+
+//#region
+
+// # Market Structure -------------------------------------------------------- #
+
+UDT_Bar b                   = UDT_Bar.new()
+
+b_h = b.h
+b_l = b.l
+b_t = b.t
+b_c = b.c
+b_o = b.o
+b_v = b.v
+b_n = b.n
+
+UDT_Alerts bull_alert       = UDT_Alerts.new()
+UDT_Alerts bear_alert       = UDT_Alerts.new()
+
+var int internal_ms_length = ms_internal_lookback
+var int swing_ms_length = ms_swing_lookback
+
+f_zscore(src, lookback) =>
+
+    (src - ta.sma(src, lookback)) / ta.stdev(src, lookback)
+
+vv = f_zscore(((close - close[internal_ms_length]) / close[internal_ms_length]) * 100,internal_ms_length)
+
+if ms_mode == "Algorithmic"
+
+    switch
+
+        vv >= 1.5 or vv <= -1.5 => internal_ms_length := 10
+        vv >= 1.6 or vv <= -1.6 => internal_ms_length := 9
+        vv >= 1.7 or vv <= -1.7 => internal_ms_length := 8
+        vv >= 1.8 or vv <= -1.8 => internal_ms_length := 7
+        vv >= 1.9 or vv <= -1.9 => internal_ms_length := 6
+        vv >= 2.0 or vv <= -2.0 => internal_ms_length := 5
+        =>                         internal_ms_length
+
+iH = ta.pivothigh(high, internal_ms_length, internal_ms_length)
+sH = ta.pivothigh(high, swing_ms_length, swing_ms_length)
+iL = ta.pivotlow (low , internal_ms_length, internal_ms_length)
+sL = ta.pivotlow (low , swing_ms_length, swing_ms_length)
+
+// # Text Size --------------------------------------------------------------- #
+
+method text_size(string size) =>
+
+    out = switch size
+
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        "Auto"   => size.auto
+    out
+
+// # Line Style -------------------------------------------------------------- #
+
+method line_style(string line) =>
+
+    out = switch line
+
+        '⎯⎯⎯'  => line.style_solid
+        '----'   => line.style_dashed
+        '····'   => line.style_dotted
+
+// # Font Style -------------------------------------------------------------- #
+
+method font_style(string font) =>
+
+    out = switch font
+
+        'Default'   => font.family_default
+        'Monospace' => font.family_monospace
+
+// # Colors    -------------------------------------------------------------- #
+
+method set_opacity(color css, int opacity) =>
+
+    blue  = color.b(css)
+    red   = color.r(css)
+    green = color.g(css)
+
+    color.rgb(red, green, blue, opacity)
+
+method darkcss(color css, float factor, bool bull) =>
+
+    blue  = color.b(css) * (1 - factor)
+    red   = color.r(css) * (1 - factor)
+    green = color.g(css) * (1 - factor)
+
+    color.rgb(red, green, blue, 0)
+
+// # Label Style ------------------------------------------------------------- #
+
+method label_style(string label) =>
+
+    out = switch label
+
+        'None'      => label.style_none
+        'Circle'    => label.style_circle
+        'Square'    => label.style_square
+        'Diamond'   => label.style_diamond
+        'Cross'     => label.style_cross
+        'xCross'    => label.style_xcross
+
+// # Table Position ---------------------------------------------------------- #
+        
+method table_position(string position) =>
+
+    out = switch position
+
+        "Bottom Center"     => position.bottom_center
+        "Bottom Left"       => position.bottom_left
+        "Bottom Right"      => position.bottom_right
+        "Middle Center"     => position.middle_center
+        "Middle Left"       => position.middle_left
+        "Middle Right"      => position.middle_right
+        "Top Center"        => position.top_center
+        "Top Left"          => position.top_left
+        "Top Right"         => position.top_right
+
+// # Text Align -------------------------------------------------------------- #
+
+method text_align(string align) =>
+
+    out = switch align
+
+        'Center'    => text.align_center
+        'Top'       => text.align_top
+        'Bottom'    => text.align_bottom
+        'Left'      => text.align_left
+        'Right'     => text.align_right
+
+// # Swings ----------------------------------------------------------------- #
+
+swings(len)=>    
+
+    upper = ta.highest(len)
+    lower = ta.lowest(len)
+
+    var float out = 0
+    out := b_h[len] > upper ? 0 : b_l[len] < lower ? 1 : out[1]
+
+    top = out == 0 and out[1] != 0 ? b_h[len] : 0
+    btm = out == 1 and out[1] != 1 ? b_l[len] : 0
+
+    [top, btm]
+
+// # Formatting ------------------------------------------------------------- #
+
+calc_percentage(float value, float total_value) => 
+    math.floor((value / total_value) * 100)
+
+method format_percent_label(string label, float num) =>
+    label_f = label == "" ? "" : str.format("{0} ", label)
+    percent_label = num < 0.01 ? str.format("{0}( <1% )", label_f) : str.format("{0}({1,number,percent})", label_f, num)
+
+    percent_label
+
+// # Box -------------------------------------------------------------------- #
+
+method add_volume_label(box _box, float value, float percentage) =>
+    volume_f = str.tostring(value, format.volume)
+    _box.set_text(format_percent_label(volume_f, percentage))
+
+// # MTF Scanner ------------------------------------------------------------ #
+
+method mtf_value(int value) => 
+    bullish_value = 1
+    bearish_value = -1
+    is_bullish = value == 1
+    is_bearish = value == -1
+    value_f = is_bullish ? "BULLISH" : is_bearish ? "BEARISH" : "-"
+
+    UDT_Scanner.new(value, value_f, bullish_value, bearish_value, is_bullish, is_bearish)
+
+// # Mitigation -------------------------------------------------------------- #
+
+// TODO: the mitigation method does not detect mitigation between internal market structure
+method mitigated_imbalance(UDT_Block fvg, string imbalance_mitigation, float close_price, float low_price, float high_price, int cur_time) =>
+    bool in_time_range = fvg.breaker ? (na(fvg.x_inv_point) ? false : cur_time > fvg.x_inv_point) : true
+    bool mitigated = false
+    
+    // if imbalance_mitigation == "Close"
+    //     // Close price should cross the bottom for bullish FVG or the top for bearish FVG
+    //     mitigated := fvg.bull ? close_price < fvg.bottom : close_price > fvg.top
+    if imbalance_mitigation == "Average"
+        // Calculate the average price of the FVG (midpoint between top and bottom)
+        float avg_price = fvg.mid
+        
+        // Close price should cross the average for mitigation (above average for bearish, below for bullish)
+        mitigated := (fvg.bull ? close_price < avg_price : close_price > avg_price) and in_time_range
+    else if imbalance_mitigation == "Wick"
+        // For Wick option, check if the low (bullish) or high (bearish) price has breached the boundaries of the FVG
+        // Bullish: Check if the low wick breaches the bottom of the FVG
+        // Bearish: Check if the high wick breaches the top of the FVG
+        mitigated := (fvg.bull ? low_price < fvg.bottom : high_price > fvg.top) and in_time_range
+        
+    mitigated
+
+method mitigate_imbalances(array<UDT_Block> fvgs, string imbalance_mitigation, float close_price, float low_price, float high_price, int cur_time) =>
+    for [index, fvg] in fvgs
+        if fvg.mitigated_imbalance(imbalance_mitigation, close_price, low_price, high_price, cur_time)
+            fvg.mitigated := true
+    fvgs
+
+// # Time --------------------------------------------------------------------- #
+     
+method get_prev_day(int current_time) =>
+    // Calculate the beginning of the current day
+    start_of_current_day = timestamp(year(current_time, syminfo.timezone), month(current_time, syminfo.timezone), dayofmonth(current_time, syminfo.timezone))
+
+    // Define the offset for previous days
+    offset = 1
+    prev_dayofweek = dayofweek(start_of_current_day - offset * 86400000, syminfo.timezone)
+    if syminfo.type == "futures" or syminfo.type == "stock"
+        while not (prev_dayofweek >= dayofweek.monday and prev_dayofweek <= dayofweek.friday) // Skip weekends
+            offset := offset + 1
+            prev_dayofweek := dayofweek(start_of_current_day - offset * 86400000, syminfo.timezone)
+
+    // Calculate the beginning of the previous market-opened day
+    start_of_previous_market_day = start_of_current_day - offset * 86400000
+
+    start_of_previous_market_day
+
+method is_same_day(int prev, int cur) =>
+    shift = (syminfo.type == "futures" or syminfo.type == "stock") ? 1 : 0
+    dayofmonth(prev, syminfo.timezone) - shift == dayofmonth(cur, syminfo.timezone) and month(prev, syminfo.timezone) == month(cur, syminfo.timezone) and year(prev, syminfo.timezone) == year(cur, syminfo.timezone)
+
+method get_prev_week(int current_time) =>
+    // Calculate the day of the week for the current time (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+    current_day_of_week = dayofweek(current_time, syminfo.timezone)
+
+    // Find the start of the current week (Monday, or Sunday depending on your locale)
+    start_of_current_week = (syminfo.type == "futures" or syminfo.type == "stock") ? timestamp(syminfo.timezone, year(current_time, syminfo.timezone), month(current_time, syminfo.timezone), dayofmonth(current_time, syminfo.timezone)) - (current_day_of_week - 1) * 86400000 : timestamp(syminfo.timezone, year(current_time, syminfo.timezone), month(current_time, syminfo.timezone), dayofmonth(current_time, syminfo.timezone))
+    
+    // Calculate the start of the previous week by subtracting 7 days (in milliseconds)
+    start_of_previous_week = start_of_current_week - 7 * 86400000
+
+    start_of_previous_week
+
+method is_same_week(int prev, int cur) =>
+    weekofyear(prev, syminfo.timezone) == weekofyear(cur, syminfo.timezone) and year(prev, syminfo.timezone) == year(cur, syminfo.timezone)
+
+method get_prev_month(int cur) =>
+    prev_month = month(cur, syminfo.timezone) - 1
+    prev_year = year(cur, syminfo.timezone)
+    if prev_month < 1
+        prev_year := prev_year - 1
+        prev_month := 12
+    timestamp(syminfo.timezone, prev_year, prev_month, 1)
+
+method is_same_month(int prev, int cur) =>
+    shift = (syminfo.type == "futures" or syminfo.type == "stock") ? 1 : 0
+    month(prev, syminfo.timezone) - shift == month(cur, syminfo.timezone) and year(prev, syminfo.timezone) == year(cur, syminfo.timezone)
+
+method get_prev_quarter(int cur) =>
+    prev_q = math.floor((month(cur, syminfo.timezone)) / 3) - 1
+    prev_year = year(cur, syminfo.timezone)
+    if prev_q < 1
+        prev_year := prev_year - 1
+        prev_q := 4
+    timestamp(syminfo.timezone, prev_year, prev_q*3, 1)
+    
+method is_same_quarter(int prev, int cur) =>
+    shift = (syminfo.type == "futures" or syminfo.type == "stock") ? 1 : 0
+    math.floor(month(prev, syminfo.timezone) / 3) - shift == math.floor(month(cur, syminfo.timezone) / 3) and year(prev, syminfo.timezone) == year(cur, syminfo.timezone)
+
+method get_prev_year(int cur) =>
+    year(cur, syminfo.timezone) - 1
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Market Structure   |
+// # ========================================================================= #
+
+//#region ms
+
+// # BOS & CHoCH ------------------------------------------------------------- #
+
+method draw_ms(UDT_MS ms) =>
+    if not na(ms)
+        if not na(ms.x1) and not na(ms.p)
+            // if bin.ms_ln.size() >= 50
+            //     del_ln = bin.ms_ln.shift()
+            //     line.delete(del_ln)
+
+            // if bin.ms_lbl.size() >= 50
+            //     del_lbl = bin.ms_lbl.shift()
+            //     label.delete(del_lbl)
+
+            ln_style = ms.sweep ? line.style_dotted :
+                 ms.swing ? line.style_solid : line.style_dashed
+            ln = line.new(
+                 x1      = ms.x1
+                 , y1    = ms.p
+                 , x2    = ms.x2
+                 , y2    = ms.p
+                 , color = ms.css
+                 , width = 1
+                 , style = ln_style
+                 )
+
+            bin.ms_ln.push(ln)
+
+            label_text = ms.sweep ? "x" : ms.ms_type
+            label_style = ms.bull ? label.style_label_down : label.style_label_up
+            lbl = label.new(
+                 x                  = int(math.avg(ms.x1, ms.x2))
+                 , y                = ms.p
+                 , text             = label_text
+                 , color            = colors_transparent
+                 , textcolor        = ms.css
+                 , style            = label_style
+                 , size             = text_size(general_text)
+                 , text_font_family = font_style(general_font)
+                 )
+
+            bin.ms_lbl.push(lbl)
+
+    ms
+
+method detect_ms_structure(UDT_MS drw, bool bull, UDT_MS_PNL top, UDT_MS_PNL btm, map<string, bool > ms_types, UDT_Alerts alerts) => 
+	swing = drw.swing
+
+    if top.p.size() > 0 and btm.l.size() > 1
+
+		if bull ? ta.crossover(b.c, top.p.first()) : ta.crossunder(b.c, top.p.first())
+
+            color clr = bull ? (swing ? ms_swing_up_bos : ms_internal_up_bos) :  (swing ? ms_swing_down_bos : ms_internal_down_bos)
+
+			if bull ? drw.trend < 0 : drw.trend > 0
+                // CHoCH/CHoCH+ detected
+				is_CHoCH_plus = bull ? btm.l.first() > btm.l.get(1) : btm.l.first() < btm.l.get(1)
+                ms_type = is_CHoCH_plus ? "CHoCH+" : "CHoCH"
+                drw.css := clr.darkcss(0.25, true)
+                
+                alerts.enable_ms_alerts(true, ms_type, swing)
+
+                if ms_types.get(ms_type) and na(drw.x1)
+                    drw.bull    := bull
+                    drw.ms_type := ms_type
+                    drw.x1      := top.n.first()
+                    drw.x2      := b.n
+                    drw.p       := top.p.first()
+                    drw.xloc    := bar_index
+
+            else
+                // BOS detected
+                ms_type = "BOS"
+                drw.css := clr
+    
+                alerts.enable_ms_alerts(true, ms_type, swing)
+
+                if ms_types.get(ms_type) and na(drw.x1)
+                    drw.bull    := bull
+                    drw.ms_type := ms_type
+                    drw.x1      := top.n.first()
+                    drw.x2      := b.n
+                    drw.p       := top.p.first()
+                    drw.xloc    := b.n
+
+            is_ob = blocks_filter == "None" ? true : blocks_filter == drw.ms_type
+            if bull
+                drw.is_bull_ob := is_ob
+            else
+                drw.is_bear_ob := is_ob
+
+			drw.trend := bull ? 1 : -1
+            top.n.clear()
+            top.p.clear()
+
+    drw
+
+map_ms_structure(string filter_type) =>
+    ms_types = map.new<string, bool >()
+    switch filter_type
+
+        "All"      =>  ms_types.put("BOS" , true ),  ms_types.put("CHoCH", true ) , ms_types.put("CHoCH+", true  )
+        "CHoCH"    =>  ms_types.put("BOS" , false),  ms_types.put("CHoCH", true ) , ms_types.put("CHoCH+", false )
+        "CHoCH+"   =>  ms_types.put("BOS" , false),  ms_types.put("CHoCH", false) , ms_types.put("CHoCH+", true  )
+        "BOS"      =>  ms_types.put("BOS" , true ),  ms_types.put("CHoCH", false) , ms_types.put("CHoCH+", false )
+        "None"     =>  ms_types.put("BOS" , false),  ms_types.put("CHoCH", false) , ms_types.put("CHoCH+", false )  
+        => na
+
+    ms_types
+
+var swing_ms_types    = map_ms_structure(ms_show_swing)
+var internal_ms_types = map_ms_structure(ms_show_internal)
+        
+internal_structure() =>
+
+    var UDT_MS ms     = UDT_MS.new(trend = 0, x1 = na, x2 = na, p = na, swing = false)
+	var UDT_MS_PNL up = UDT_MS_PNL.new(array.new<float>(), array.new< int >(), array.new<float>())
+	var UDT_MS_PNL dn = UDT_MS_PNL.new(array.new<float>(), array.new< int >(), array.new<float>())
+
+    switch
+        not na(iH) =>
+
+            up.p.unshift(b_h      [internal_ms_length])
+            up.l.unshift(b_h      [internal_ms_length])
+            up.n.unshift(bar_index[internal_ms_length])
+
+        not na(iL) =>
+
+            dn.p.unshift(b_l      [internal_ms_length])
+            dn.l.unshift(b_l      [internal_ms_length])
+            dn.n.unshift(bar_index[internal_ms_length])
+
+    ms.x1         := na
+    ms.x2         := na
+    ms.xloc       := na
+    ms.p          := na
+    ms.ms_type    := na
+    ms.is_bear_ob := false
+    ms.is_bull_ob := false
+    ms.sweep      := false
+
+	// Internal Bullish Strucure
+    ms.detect_ms_structure(true , up, dn, internal_ms_types, bull_alert)
+
+	// Internal Bearish Strucure
+    ms.detect_ms_structure(false, dn, up, internal_ms_types, bear_alert)
+
+    [ms.trend, ms]
+
+swing_structure() =>
+
+    var UDT_MS ms     = UDT_MS.new(trend = 0, x1 = na, x2 = na, p = na, swing = true)
+	var UDT_MS_PNL up = UDT_MS_PNL.new(array.new<float>(), array.new< int >(), array.new<float>())
+	var UDT_MS_PNL dn = UDT_MS_PNL.new(array.new<float>(), array.new< int >(), array.new<float>())
+
+    switch
+
+        not na(sL) =>
+
+            dn.p.unshift(b_l      [swing_ms_length])
+            dn.l.unshift(b_l      [swing_ms_length])
+            dn.n.unshift(bar_index[swing_ms_length])
+
+        not na(sH) =>
+
+            up.p.unshift(b_h      [swing_ms_length])
+            up.l.unshift(b_h      [swing_ms_length])
+            up.n.unshift(bar_index[swing_ms_length])
+
+    ms.x1         := na
+    ms.x2         := na
+    ms.xloc       := na
+    ms.p          := na
+    ms.ms_type    := na
+    ms.is_bear_ob := false
+    ms.is_bull_ob := false
+    ms.sweep      := false
+
+	// Swing Bullish Structure
+    ms.detect_ms_structure(true , up, dn, swing_ms_types, bull_alert)
+
+	// Swing Bearish Structure
+    ms.detect_ms_structure(false, dn, up, swing_ms_types, bear_alert)
+
+    [ms.trend, ms]
+
+[internal_trend, internal_ms] = internal_structure()
+[swing_trend   , swing_ms   ] = swing_structure()
+    
+//#endregion
+
+//#region swings
+
+// # Swings ------------------------------------------------------------------ #
+
+var swing_high = UDT_Zphl.new(scross = true, icross = true, txt = "", x= 0, y = 0, t = high, tx = 0, ix = 0, iy = 0, vol = na)
+
+var swing_low  = UDT_Zphl.new(scross = true, icross = true, txt = "", x= 0, y = 0, t = low , tx = 0, ix = 0, iy = 0, vol = na)
+
+[s_ms_top, s_ms_btm] = swings(swing_ms_length)
+[i_ms_top, i_ms_btm] = swings(internal_ms_length)
+
+ms_swings(UDT_Zphl swing_hl, bool bull) =>
+    swing_hl.scross := true
+    swing_hl.txt    := bull ? s_ms_top > swing_hl.y ? "HH" : "HL" : s_ms_btm > swing_hl.y ? "LH" : "LL"
+
+    topl = label.new(
+               x = b.n - ms_swing_lookback
+             , y = bull ? s_ms_top : s_ms_btm
+             , text = swing_hl.txt
+             , color     = colors_transparent
+             , textcolor = bull ? pd_premium_css : pd_discount_css
+             , style     = bull ? label.style_label_down : label.style_label_up
+             , size      = text_size(ms_swing_point_label_size)
+             , text_font_family = font_style(general_font)
+             )
+
+    swing_hl
+
+if ms_swing_point_show
+    if s_ms_top > 0
+        ms_swings(swing_high, true)
+        
+    if s_ms_btm > 0
+        ms_swings(swing_low, false)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   MTF Scanner   |
+// # ========================================================================= #
+
+//#region
+
+// NOTE: Moving this section will result on following ERROR: Error at 646:1 built-in 'line.set_color' cannot be used with any parameter of the `security()` function.
+
+method scanner_table_cell_header(series table scanner_table, int column, int row, string txt) =>
+    text_color = color.black
+    table.cell(scanner_table, column = column, row = row, text = txt, text_halign = text.align_center, text_size = text_size(general_text), text_color = text_color, bgcolor = chart.bg_color, text_font_family = font_style(general_font), width = general_text == "Large" ? na : 2)
+
+method scanner_table_cell_value(series table scanner_table, int column, int row, UDT_Scanner data) =>
+    text_color = data.is_bullish ? ms_internal_up_bos.darkcss(-0.25, true) : data.is_bearish ? ms_internal_down_bos.darkcss(0.25, false) : color.gray
+    txt = data.value_f
+    table.cell(scanner_table, column = column, row = row, text = txt, text_halign = text.align_center, text_size = text_size(general_text), text_color = text_color, bgcolor = chart.bg_color, text_font_family = font_style(general_font), width = general_text == "Large" ? na : 6)
+
+method scanner_table(series table scanner_table, array<string> columns, map<string, UDT_Scanner> data) => 
+    scanner_table.set_frame_color(color.gray)
+    scanner_table.set_frame_width(1)
+    scanner_table.set_border_color(color.black)
+    scanner_table.set_border_width(1)
+
+    for [index, key] in columns
+        scanner_table.scanner_table_cell_header(column = index, row = 1, txt = key)
+    
+    for [index, key] in data.keys()
+        scanner_table.scanner_table_cell_header(column = 0, row = index + 2, txt  = key)
+        scanner_table.scanner_table_cell_value (column = 1, row = index + 2, data = data.get(key))
+    scanner_table
+
+// # MTF Scanner ------------------------------------------------------------- #
+
+if scanner_mtf_show
+
+    scanner_mtf_columns = array.from("TIME", "TREND")
+
+    [i_trend_5 ]  = request.security("", "5"  , [internal_trend])
+    [i_trend_15]  = request.security("", "15" , [internal_trend])
+    [i_trend_30]  = request.security("", "30" , [internal_trend])
+    [i_trend_1h]  = request.security("", "60" , [internal_trend])
+    [i_trend_4h]  = request.security("", "240", [internal_trend])
+    [i_trend_1d]  = request.security("", "1D" , [internal_trend])
+
+    scanner_mtf_data = map.new<string, UDT_Scanner>()
+    scanner_mtf_data.put("5m"   , mtf_value(i_trend_5))
+    scanner_mtf_data.put("15m"  , mtf_value(i_trend_15))
+    scanner_mtf_data.put("30m"  , mtf_value(i_trend_30))
+    scanner_mtf_data.put("1h"   , mtf_value(i_trend_1h))
+    scanner_mtf_data.put("4h"   , mtf_value(i_trend_4h))
+    scanner_mtf_data.put("D"    , mtf_value(i_trend_1d))
+
+    var scanner_mtf_table = table.new(position = table_position(scanner_mtf_position), columns = 20, rows = 20)
+    if (barstate.islast)
+        scanner_mtf_table.scanner_table(columns = scanner_mtf_columns, data = scanner_mtf_data)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Blocks   |
+// # ========================================================================= #
+
+//#region
+
+if ms_enable
+    internal_ms.draw_ms()
+    swing_ms.draw_ms()
+
+//#region pivot points
+
+detect_pivot_points(int len) =>
+    [hH, lL] = request.security(syminfo.tickerid, blocks_timeframe, [high, low], lookahead = barmerge.lookahead_off)
+
+    h = array.new<float>()
+    l = array.new<float>()
+    n = array.new< int >()
+
+    if len > 1
+        for i = 0 to len - 1
+            h.push(hH[i])
+            l.push(lL[i])
+            n.push(b_t[i])
+    
+        float highest_high = h.max()
+        float lowest_low   = l.min()
+        int i_highest_high = h.indexof(highest_high) + 1
+        int i_lowest_low   = l.indexof(lowest_low) + 1
+        int highest_high_n = n.get(i_highest_high - 1)
+        int lowest_low_n   = n.get(i_lowest_low - 1) 
+        UDT_Pivot_Point pivot_point = UDT_Pivot_Point.new(
+               highest_high = highest_high
+             , lowest_low = lowest_low
+             , highest_high_n = highest_high_n
+             , lowest_low_n = lowest_low_n
+             , i_highest_high = i_highest_high
+             , i_lowest_low = i_lowest_low
+             )
+
+        pivot_point
+
+//#endregion
+
+//#region order blocks
+
+method style_order_block(UDT_Block order_block, box figure, bool swing, bool inversion) =>
+    bull      = inversion ? not order_block.bull : order_block.bull
+    mitigated = order_block.mitigated
+    breaker   = order_block.breaker
+
+    bgcolor = mitigated
+         ? blocks_mitigation_css
+         : blocks_use_grayscale
+             ? colors_gray_90 
+             : bull 
+                 ? swing ? blocks_bull_css : breaker ? blocks_bull_css.set_opacity(90) : blocks_bull_css 
+                 : swing ? blocks_bear_css : breaker ? blocks_bear_css.set_opacity(90) : blocks_bear_css
+    figure.set_bgcolor(bgcolor)
+    figure.set_text_size(size.auto)
+    figure.set_text_halign(text.align_left)
+    figure.set_text_font_family(font_style(general_font))
+    figure.set_text_color(colors_gray)
+    use_border = swing or blocks_use_border
+    figure.set_border_color(use_border ? blocks_use_grayscale ? colors_gray : bgcolor : colors_transparent)
+    figure.set_border_style(line_style(blocks_use_border_type))
+    figure.set_border_width(use_border ? blocks_use_border_width : 0)
+    figure
+
+style_metric_block(box figure, bool bull, bool swing) =>
+    bgcolor = bull ? blocks_metric_bull_css : blocks_metric_bear_css
+    figure.set_extend(extend.none)
+    figure.set_bgcolor(bgcolor)
+    figure.set_text_size(size.auto)
+    figure.set_text_font_family(font_style(general_font))
+    figure.set_border_color(bgcolor)
+    figure.set_border_style(line_style(blocks_use_border_type))
+    figure.set_border_width(0)
+    figure
+
+method style_order_block_midline(UDT_Block order_block, line figure, bool swing) =>
+    bull    = order_block.bull
+    lncolor = bull 
+             ? swing ? blocks_bull_css : blocks_bull_css 
+             : swing ? blocks_bear_css : blocks_bear_css
+    figure.set_color(blocks_use_grayscale ? colors_gray : lncolor.set_opacity(5))
+    figure.set_width(blocks_use_middle_line_width)
+    figure.set_style(line_style(blocks_use_middle_line_type))
+    figure
+
+get_block_position(bool bull) =>
+    pos = switch blocks_position
+        "Full"      => bull ? high : low
+        "Middle"    => ohlc4
+        "Accurate"  => hl2
+        "Precise"   => hl2
+        => hl2
+    pos
+
+method detect_order_block(array<UDT_Block> order_blocks, UDT_Pivot_Point pivot_point, bool cdn, bool bull) =>
+    UDT_Block ob = na
+
+    position = get_block_position(bull)
+
+    if cdn and not na(pivot_point)
+        id        = b.n
+        bar_close = bull ? b_c[pivot_point.i_lowest_low]   : b_c[pivot_point.i_highest_high]
+        bar_open  = bull ? b_o[pivot_point.i_lowest_low]   : b_o[pivot_point.i_highest_high]
+        pos       = bull ? position[pivot_point.i_lowest_low]   : position[pivot_point.i_highest_high] 
+        prev_high = bull ? hlcc4[pivot_point.i_lowest_low] : hlcc4[pivot_point.i_highest_high]
+
+        switch bull
+            true =>
+                left    = pivot_point.lowest_low_n
+                top     = pos
+                right   = last_bar_time
+                bottom  = pivot_point.lowest_low
+                mid     = math.avg(top, bottom)
+
+                switch blocks_position
+                    "Precise" => 
+                        if mid < (bar_close < bar_open ? bar_close : bar_open) and top > prev_high
+                            top := mid
+                            mid := math.avg(top, bottom)
+                ob := UDT_Block.new(id, left, top, right, bottom, mid, bull = bull, state = 0)
+
+            false =>
+                left    = pivot_point.highest_high_n
+                top     = pivot_point.highest_high
+                right   = last_bar_time
+                bottom  = pos
+                mid     = math.avg(top, bottom)
+
+                switch blocks_position
+                    "Precise" => 
+                        if mid > (bar_close < bar_open ? bar_open : bar_close) and bottom < prev_high
+                            bottom := mid
+                            mid := math.avg(top, bottom)
+
+                ob := UDT_Block.new(id, left, top, right, bottom, mid, bull = bull, state = 0)
+        
+        order_blocks.unshift(ob)
+
+    ob
+
+method add_block_volume(map<int, UDT_Volume> order_volume, UDT_Block order_block, UDT_Pivot_Point pivot_point) =>
+    if not na(order_block)
+        bull      = order_block.bull
+        bar_close = bull ? b_c[pivot_point.i_lowest_low]   : b_c[pivot_point.i_highest_high]
+        bar_open  = bull ? b_o[pivot_point.i_lowest_low]   : b_o[pivot_point.i_highest_high]
+        vol       = bull ? b_v[pivot_point.i_lowest_low] : b_v[pivot_point.i_highest_high]
+        vol_dir   = bar_close > bar_open
+        ob_id     = order_block.id
+
+        vb = UDT_Volume.new(ob_id = ob_id, vol = vol, vol_percent = 0, dir = vol_dir, wM = 1, blVP = 0, brVP = 0)
+        order_volume.put(ob_id, vb)
+
+    order_volume
+
+method invalidate_blocks(array<UDT_Block> order_blocks, float close_price) =>
+    if order_blocks.size() > 0
+        for i = order_blocks.size()-1 to 0
+            ob = order_blocks.get(i)
+            if (ob.bull ? close_price < ob.bottom : close_price > ob.top)
+                ob.invalidated := true
+                order_blocks.remove(i)
+    order_blocks
+
+method add_buy_sell_activity(map<int, UDT_Volume> order_volume) => 
+    for [i, ob] in order_volume
+        switch ob.dir
+
+            true  =>
+                switch ob.wM
+
+                    1 => ob.blVP := ob.blVP + 1, ob.wM := 2
+                    2 => ob.blVP := ob.blVP + 1, ob.wM := 3
+                    3 => ob.brVP := ob.brVP + 1, ob.wM := 1
+            false =>
+                switch ob.wM
+
+                    1 => ob.brVP := ob.brVP + 1, ob.wM := 2
+                    2 => ob.brVP := ob.brVP + 1, ob.wM := 3
+                    3 => ob.blVP := ob.blVP + 1, ob.wM := 1
+    order_volume
+
+method remove_overlaped_blocks(array<UDT_Block> order_blocks) =>
+    int size = array.size(order_blocks)
+    int i = 0
+    while i < size
+        int j = i + 1
+        while j < size
+            // Get the blocks
+            bl_1 = array.get(order_blocks, i)
+            bl_2 = array.get(order_blocks, j)
+
+            // Check for overlap between bl_1 and bl_2
+            if bl_1.bull == bl_2.bull // Only compare blocks of the same type (bull or bear)
+                // Check if the blocks overlap
+                if (bl_1.top > bl_2.bottom and bl_1.bottom < bl_2.top)
+                    // Remove the more recent block (higher index) and adjust size
+                    order_blocks.remove(j)
+                    size := size - 1  // Update the size after removal
+                    j := j - 1  // Adjust j since we removed an element
+            j := j + 1
+        i := i + 1
+
+    // Return the updated array without overlapped blocks
+    order_blocks
+
+method get_total_volume(array<UDT_Block> order_blocks, map<int, UDT_Volume> order_volume) =>
+    vol_arr = array.new<float>()
+    
+    for [index, ob] in order_blocks
+        vol = order_volume.get(ob.id)
+        vol_arr.unshift(vol.vol)
+
+    float total = vol_arr.sum()
+    total
+
+method add_volume_percentage(array<UDT_Block> order_blocks, map<int, UDT_Volume> order_volume) =>
+    float total = order_blocks.get_total_volume(order_volume)
+    float total_percent = 100
+    
+    for [index, ob] in order_blocks
+        vol = order_volume.get(ob.id)
+        if (index < order_blocks.size() - 1)
+            p = calc_percentage(vol.vol, total)
+            total_percent -= p
+            vol.vol_percent := p
+        else
+            vol.vol_percent := total_percent
+
+    order_volume
+
+method limit_filter_bull_or_bear(array<UDT_Block> order_blocks, bool only_bull, int limit) =>
+    filter_blocks       = array.new<UDT_Block>()
+    len   = math.min(limit, order_blocks.size())
+    i = 0
+    count = 0
+    while i < order_blocks.size() and count < len
+        ob = order_blocks.get(i)
+        if ob.bull == only_bull
+            filter_blocks.unshift(ob)
+            count += 1
+        i += 1
+    filter_blocks
+
+method draw_volumetric_order_blocks(array<UDT_Block> order_blocks, map<int, UDT_Volume> order_volume, int cur_time, int prev_time, bool swing) => 
+    for [i, ob] in order_blocks
+        time_frame = cur_time - prev_time
+        top     = ob.top
+        bottom  = ob.bottom
+        left    = ob.left
+        right   = last_bar_time // ob.right
+        rightShift = cur_time + time_frame * 100
+        mid     = ob.mid
+        bull    = ob.bull
+        mitigated  = ob.mitigated
+
+        bin.ob_box.push(ob.style_order_block(box.new(left = left, top = top, right = right, bottom = bottom, xloc = xloc.bar_time, extend = blocks_show_metrics ? extend.none : extend.right), swing, false))
+
+        if blocks_use_middle_line
+            bin.ob_ln.push(ob.style_order_block_midline(line.new(x1 = left, y1 = mid, x2 = right, y2 = mid, xloc = xloc.bar_time, extend = blocks_show_metrics ? extend.none : extend.right), swing))
+
+        // volume
+        ob_vol  = order_volume.get(ob.id)
+
+        if blocks_show_metrics
+            extended_ob = ob.style_order_block(box.new(left = cur_time, top = top, right = rightShift, bottom = bottom, xloc = xloc.bar_time, extend = extend.right), swing, false)
+            bin.ob_box.push(extended_ob)
+            extended_ob.add_volume_label(ob_vol.vol, ob_vol.vol_percent / 100)
+
+        if blocks_show_buy_sell_activity
+            bin.ob_box.push(style_metric_block(box.new(left = left, top = top, right = left + time_frame * ob_vol.blVP, bottom = mid, xloc = xloc.bar_time), true, swing))
+            bin.ob_box.push(style_metric_block(box.new(left = left, top = mid, right = left + time_frame * ob_vol.brVP, bottom = bottom, xloc = xloc.bar_time), false, swing))
+
+    order_blocks
+
+//#endregion
+
+var hN = b.n
+var lN = b.n
+var hS = b.n
+var lS = b.n
+
+if not na(iH)
+
+    hN:=int(b_n[internal_ms_length])
+
+if not na(iL)
+
+    lN:=int(b_n[internal_ms_length])
+
+if not na(sH)
+
+    hS:=int(b_n[swing_ms_length])
+
+if not na(sL)
+
+    lS:=int(b_n[swing_ms_length])
+
+bin.clean_ob()
+
+order_blocks_indicator() => 
+    
+    var all_order_blocks = array.new<UDT_Block>(na) // order blocks
+    var all_order_volume = map.new<int, UDT_Volume>() // order blocks volume
+
+    bull_pivot_point = detect_pivot_points(math.abs((hN - b.n)))
+    bull_vob = all_order_blocks.detect_order_block(bull_pivot_point, internal_ms.is_bull_ob, true)
+    all_order_volume.add_block_volume(bull_vob, bull_pivot_point)
+
+    bear_pivot_point = detect_pivot_points(math.abs((lN - b.n)))
+    bear_vob = all_order_blocks.detect_order_block(bear_pivot_point, internal_ms.is_bear_ob, false)
+    all_order_volume.add_block_volume(bear_vob, bear_pivot_point)
+
+    if barstate.isconfirmed
+            
+        all_order_blocks.invalidate_blocks(close) // invalidate order blocks
+
+        all_order_blocks.mitigate_imbalances(blocks_mitigation, b.c, low, high, time) // mitigate order blocks
+        
+        if blocks_show_buy_sell_activity
+            all_order_volume.add_buy_sell_activity()
+
+    if barstate.islast
+        
+        if blocks_use_overlap
+            all_order_blocks.remove_overlaped_blocks() // remove overlaped
+
+        bull_order_blocks = all_order_blocks.limit_filter_bull_or_bear(true , blocks_num)  // filter out bullish order blocks
+        bear_order_blocks = all_order_blocks.limit_filter_bull_or_bear(false, blocks_num) // filter out bearish order blocks
+
+        // calculate volume percentage for labels
+        if blocks_show_metrics
+            bull_order_blocks.add_volume_percentage(all_order_volume)
+            bear_order_blocks.add_volume_percentage(all_order_volume)
+    
+        // add drawings
+        bull_order_blocks.draw_volumetric_order_blocks(all_order_volume, b.t, b_t[1], false)
+        bear_order_blocks.draw_volumetric_order_blocks(all_order_volume, b.t, b_t[1], false)
+
+    // alerts
+    bull_alert.enable_ob_alerts(bull_vob)
+    bear_alert.enable_ob_alerts(bear_vob)
+
+    [bull_vob, bear_vob]
+
+swing_order_blocks_indicator() => 
+    
+    var all_order_blocks = array.new<UDT_Block>(na) // order blocks
+    var all_order_volume = map.new<int, UDT_Volume>() // order blocks volume
+
+    bull_pivot_point = detect_pivot_points(math.abs((hS - b.n)))
+    bull_vob = all_order_blocks.detect_order_block(bull_pivot_point, swing_ms.is_bull_ob, true)
+    all_order_volume.add_block_volume(bull_vob, bull_pivot_point)
+
+    bear_pivot_point = detect_pivot_points(math.abs((lS - b.n)))
+    bear_vob = all_order_blocks.detect_order_block(bear_pivot_point, swing_ms.is_bear_ob, false)
+    all_order_volume.add_block_volume(bear_vob, bear_pivot_point)
+
+    if barstate.isconfirmed
+            
+        all_order_blocks.invalidate_blocks(close) // invalidate order blocks
+        all_order_blocks.mitigate_imbalances(blocks_mitigation, b.c, low, high, time) // mitigate order blocks
+        
+        if blocks_show_buy_sell_activity
+            all_order_volume.add_buy_sell_activity()
+
+    if barstate.islast
+        
+        if blocks_use_overlap
+            all_order_blocks.remove_overlaped_blocks() // remove overlaped
+
+        bull_order_blocks = all_order_blocks.limit_filter_bull_or_bear(true , blocks_num)  // filter out bullish order blocks
+        bear_order_blocks = all_order_blocks.limit_filter_bull_or_bear(false, blocks_num) // filter out bearish order blocks
+
+        // calculate volume percentage for labels
+        if blocks_show_metrics
+            bull_order_blocks.add_volume_percentage(all_order_volume)
+            bear_order_blocks.add_volume_percentage(all_order_volume)
+    
+        // add drawings
+        bull_order_blocks.draw_volumetric_order_blocks(all_order_volume, b.t, b_t[1], true)
+        bear_order_blocks.draw_volumetric_order_blocks(all_order_volume, b.t, b_t[1], true)
+
+    // alerts
+    bull_alert.enable_swing_ob_alerts(bull_vob)
+    bear_alert.enable_swing_ob_alerts(bear_vob)
+
+    [bull_vob, bear_vob]
+
+if blocks_show and blocks_type == "Order Blocks"
+
+    order_blocks_indicator()
+
+if blocks_show and blocks_type == "Swing Order Blocks"
+
+    swing_order_blocks_indicator()
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   FVG | OG   |
+// # ========================================================================= #
+
+//#region
+
+// # Utilities --------------------------------------------------------------- #
+
+shift_to_right(int current, int length, string tf) =>
+    current + timeframe.in_seconds(tf) * 1000 * (length + 1)
+
+shift_to_left(int current, int prev, int length) =>
+    current - (current - prev) * length + 1
+
+shift_bars_to_right(int bars) => 
+    bars + 20
+
+method disrespected_imbalance(UDT_Block fvg, float c_top, float c_bot) =>
+    bool ifvg = false
+
+    if fvg.bull
+        ifvg := c_bot < fvg.bottom
+    else
+        ifvg := c_top > fvg.top
+    ifvg
+
+method limit_buffer(array<UDT_Block> data, int buffer) =>
+    if data.size() >= buffer
+        data.shift()
+    data
+
+method filter_fvgs(array<UDT_Block> blocks, array<UDT_Block> all_blocks, int buffer, float c_top, float c_bot) => // filtering only FVG data
+    all_blocks.limit_buffer(buffer)
+
+    // Detect FVGs, remove detected imbalance from all FVGs
+    if all_blocks.size() > 0
+        for i = all_blocks.size()-1 to 0
+            value = all_blocks.get(i)
+            if not value.disrespected_imbalance(c_top = c_top, c_bot = c_bot)
+                blocks.unshift(all_blocks.remove(i))
+
+    // Filter out disrespected FVGs
+    if blocks.size() > 0
+        for i = blocks.size()-1 to 0
+            value = blocks.get(i)
+            if value.disrespected_imbalance(c_top = c_top, c_bot = c_bot)
+                value.invalidated := true
+                blocks.remove(i)
+
+    // Return the filtered out array without disrespected FVGs
+    blocks
+
+method remove_overlaped(array<UDT_Block> fvgs) =>
+    int size = array.size(fvgs)
+    int i = 0
+    while i < size
+        int j = i + 1
+        while j < size
+            // Get the FVGs
+            fvg_1 = array.get(fvgs, i)
+            fvg_2 = array.get(fvgs, j)
+
+            // Check for overlap between fvg_1 and fvg_2
+            if (fvg_1.bull == fvg_2.bull) // Only compare FVGs of the same type (bull or bear)
+                // Check if the FVGs overlap
+                if (fvg_1.top > fvg_2.bottom and fvg_1.bottom < fvg_2.top)
+                    // Remove the more recent FVG (higher index) and adjust size
+                    array.remove(fvgs, j)
+                    size := size - 1  // Update the size after removal
+                    j := j - 1  // Adjust j since we removed an element
+            j := j + 1
+        i := i + 1
+
+    // Return the updated array without overlapped FVGs
+    fvgs
+
+method style_imbalance_box(UDT_Block fvg, box figure, bool inversion) =>
+    // style border
+    border_width = imbalance_border ? imbalance_border_width : 0
+    border_color = inversion
+             ? (fvg.bull ? imbalance_border_bear_css : imbalance_border_bull_css)
+             : fvg.mitigated
+                 ? imbalance_mitigation_css
+                 : (fvg.bull ? imbalance_border_bull_css : imbalance_border_bear_css)
+    border_style = line_style(imbalance_border_type)
+    figure.set_border_width(border_width)
+    figure.set_border_style(border_style)
+    figure.set_border_color(border_color)
+     
+    // style background
+    bgcolor = inversion
+             ? (fvg.bull ? imbalance_bear_css : imbalance_bull_css)
+             : fvg.mitigated
+                 ? imbalance_mitigation_css
+                 : (fvg.bull ? imbalance_bull_css : imbalance_bear_css)
+    figure.set_bgcolor(bgcolor)
+
+    // style text
+    text_size = text_size(general_text)
+    text_font_family = font_style(general_font)
+    figure.set_text_size(text_size)
+    figure.set_text_font_family(text_font_family)
+
+    if not inversion and imbalance_elongate
+        figure.set_extend(extend.right)
+
+    figure
+
+method style_imbalance_midline(UDT_Block fvg, line figure, bool inversion) => 
+    line_color = fvg.mitigated 
+         ? imbalance_mitigation_css
+         : inversion
+             ? (fvg.bull ? imbalance_midline_bear_css : imbalance_midline_bull_css)
+             : (fvg.bull ? imbalance_midline_bull_css : imbalance_midline_bear_css)
+    line_width = imbalance_midline_width
+    line_style = line_style(imbalance_midline_type)
+
+    figure.set_color(line_color)
+    figure.set_width(line_width)
+    figure.set_style(line_style)
+
+    if not inversion and imbalance_elongate
+        figure.set_extend(extend.right)
+
+    figure
+
+gap_hl() => request.security(syminfo.tickerid, imbalance_timeframe, [high[2], low[2], close[1], open[1]])
+
+tf_gap() => request.security(syminfo.tickerid, imbalance_timeframe, [open, high, low, close])
+
+[prev_high_2, prev_low_2, prev_close, prev_open] = gap_hl()
+[gap_open, gap_high, gap_low, gap_close]         = tf_gap()
+
+bool fvg_timeframe_change = timeframe.change(imbalance_timeframe)
+
+get_imbalance_fvg_threshold()   => ta.atr(14) * imbalance_threshold
+get_imbalance_og_threshold()    => ta.atr(14) * imbalance_threshold
+
+// # FVG --------------------------------------------------------------------- #
+
+method detect_fvgs(array<UDT_Block> blocks, bool bull, int buffer) => 
+
+    id        = b.n
+    float imbalance_atr = get_imbalance_fvg_threshold()
+    
+    int position    = 1
+    int left        = shift_to_left(b.t, b_t[1], position)
+    int right       = imbalance_extend ? last_bar_time : shift_to_right(b.t, imbalance_length, imbalance_timeframe)
+
+    log.info(str.tostring(b.t)+" "+str.tostring(b_t[1])+" "+str.tostring(right))
+
+    UDT_Block fvg   = na
+
+    switch bull
+        true => 
+            top     = gap_low
+            bottom  = prev_high_2
+            mid     = math.avg(top,bottom)
+            is_fvg_detected = top > bottom and math.abs(top - bottom) > imbalance_atr
+
+            if is_fvg_detected and fvg_timeframe_change
+                fvg := UDT_Block.new(id, left, top, right, bottom, mid, bull = true, state = 0)
+                blocks.unshift(fvg)
+
+        false =>
+            top     = prev_low_2
+            bottom  = gap_high
+            mid     = math.avg(top,bottom)
+            is_fvg_detected = bottom < top and math.abs(top - bottom) > imbalance_atr
+
+            if is_fvg_detected and fvg_timeframe_change
+                fvg := UDT_Block.new(id, left, top, right, bottom, mid, bull = false, state = 0)
+                blocks.unshift(fvg)
+
+    fvg
+
+method draw_fvgs(array<UDT_Block> blocks) => // Draws FVGs
+    if blocks.size() > 0
+        for [i, fvg] in blocks
+            top     = fvg.top
+            bottom  = fvg.bottom
+            left    = fvg.left
+            right   = imbalance_extend ? last_bar_time : shift_to_right(fvg.left, imbalance_length, imbalance_timeframe) // fvg.right
+            mid     = fvg.mid
+
+            gap_box  = fvg.style_imbalance_box(box.new(left, top, right, bottom, xloc = xloc.bar_time), false)
+            bin.imbalance_box.push(gap_box)
+
+            if imbalance_midline
+                midline = fvg.style_imbalance_midline(line.new(x1 = left, y1 = mid, x2 = right, y2 = mid, xloc = xloc.bar_time), false)
+                bin.imbalance_ln.push(midline)
+    blocks
+
+fvg_indicator(buffer) =>
+    var all_blocks       = array.new<UDT_Block>(na) // all
+    var detected_blocks  = array.new<UDT_Block>(na) // detected
+
+    bull_block = all_blocks.detect_fvgs(true , buffer) // detect bullish, limit to buffer
+    bear_block = all_blocks.detect_fvgs(false, buffer) // detect bearish, limit to buffer
+
+    detected_blocks
+         .filter_fvgs(all_blocks, buffer, gap_close, gap_close)
+         .mitigate_imbalances(imbalance_mitigation, gap_close, gap_low, gap_high, b.t)
+
+    if barstate.islast
+        // Remove overlaped if imbalance_overlap enabled
+        if imbalance_overlap
+            detected_blocks.remove_overlaped()
+
+        bull_detected_blocks = detected_blocks.limit_filter_bull_or_bear(true , imbalance_num) // filter out bullish
+        bear_detected_blocks = detected_blocks.limit_filter_bull_or_bear(false, imbalance_num) // filter out bearish
+
+        // Add drawings
+        draw_fvgs(bull_detected_blocks)
+        draw_fvgs(bear_detected_blocks)
+
+    // alerts
+    bull_alert.enable_imbalance_fvg_alerts(bull_block)
+    bear_alert.enable_imbalance_fvg_alerts(bear_block)
+
+// # OG ---------------------------------------------------------------------- #
+
+method detect_og(array<UDT_Block> blocks, bool bull, int buffer) => 
+    id        = b.n
+    float imbalance_atr = get_imbalance_og_threshold()
+    int position        = 1
+    int left            = shift_to_left(b.t, b_t[1], position)
+    int right           = imbalance_extend ? last_bar_time : shift_to_right(b.t, imbalance_length, imbalance_timeframe)
+
+    UDT_Block fvg   = na
+
+    switch bull
+        true => 
+            top     = gap_low
+            bottom  = gap_high[1]
+            mid     = math.avg(top,bottom)
+            is_fvg_detected = gap_low > gap_high[1]
+
+            if is_fvg_detected and fvg_timeframe_change
+                fvg := UDT_Block.new(id, left, top, right, bottom, mid, bull = true, state = 0)
+                blocks.unshift(fvg)
+
+        false =>
+            top     = gap_low[1]
+            bottom  = gap_high
+            mid     = math.avg(top,bottom)
+            is_fvg_detected = gap_high < gap_low[1]
+
+            if is_fvg_detected and fvg_timeframe_change
+                fvg := UDT_Block.new(id, left, top, right, bottom, mid, bull = false, state = 0)
+                blocks.unshift(fvg)
+
+    fvg
+
+method draw_og(array<UDT_Block> blocks) => // Draws OG
+    if blocks.size() > 0
+        for [i, og] in blocks
+            top     = og.top
+            bottom  = og.bottom
+            left    = og.left
+            right   = imbalance_extend ? last_bar_time : shift_to_right(og.left, imbalance_length, imbalance_timeframe) // og.right
+            mid     = og.mid
+
+            imbalance_box  = og.style_imbalance_box(box.new(left, top, right, bottom, xloc = xloc.bar_time), false)
+            bin.imbalance_box.push(imbalance_box)
+
+            if imbalance_midline
+                midline = og.style_imbalance_midline(line.new(x1 = left, y1 = mid, x2 = right, y2 = mid, xloc = xloc.bar_time), false)
+                bin.imbalance_ln.push(midline)
+    blocks
+
+og_indicator(int buffer) => 
+    var all_blocks       = array.new<UDT_Block>(na) // all
+    var detected_blocks  = array.new<UDT_Block>(na) // detected
+
+    bull_block = all_blocks.detect_og(true , buffer) // detect bullish, limit to buffer
+    bear_block = all_blocks.detect_og(false, buffer) // detect bearish, limit to buffer
+
+    detected_blocks
+         .filter_fvgs(all_blocks, buffer, gap_close, gap_close)
+         .mitigate_imbalances(imbalance_mitigation, gap_close, gap_low, gap_high, b.t)
+
+    if barstate.islast
+        // Remove overlaped if imbalance_overlap enabled
+        if imbalance_overlap
+            detected_blocks.remove_overlaped()
+            
+        bull_detected_blocks = detected_blocks.limit_filter_bull_or_bear(true , imbalance_num) // filter out bullish
+        bear_detected_blocks = detected_blocks.limit_filter_bull_or_bear(false, imbalance_num) // filter out bearish
+
+        // Add drawings
+        draw_og(bull_detected_blocks)
+        draw_og(bear_detected_blocks)
+
+    // alerts
+    bull_alert.enable_imbalance_og_alerts(bull_block)
+    bear_alert.enable_imbalance_og_alerts(bear_block)
+
+buffer  = 50 // How many max FVGs to keep in memory
+
+// Delete drawings
+bin.clean_imbalance()
+
+if (imbalance_enable)
+    switch imbalance_type
+
+        "FVG" => 
+            fvg_indicator(buffer)
+
+        "OG" =>
+            og_indicator(buffer)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Premium/Equilibrium/Discount & Strong/Weak High/Low   |
+// # ========================================================================= #
+
+//#region Premium / Equilibrium / Discount
+
+// # Premium / Equilibrium / Discount ---------------------------------------- #
+
+method detect_bull_phl(UDT_Zphl swing_hl, int trend) =>
+
+    swing_hl_t = swing_hl.t
+
+    if s_ms_top > 0
+
+        swing_hl.y      := s_ms_top
+        swing_hl.x      := b.n - swing_ms_length
+        swing_hl.t      := s_ms_top
+        swing_hl.tx     := b.n - swing_ms_length
+
+    if i_ms_top > 0
+
+        swing_hl.icross := true
+        swing_hl.iy     := i_ms_top
+        swing_hl.ix     := b.n - internal_ms_length
+
+    swing_hl.t          := math.max(b.h, swing_hl.t)
+    swing_hl.tx         := swing_hl.t == b.h ? b.n : swing_hl.tx
+    swing_hl.vol        := swing_hl.t != swing_hl_t[1] ? b.v : swing_hl.vol
+
+    swing_hl
+
+method draw_bull_phl(UDT_Zphl swing_hl) =>
+    var l = line.new(x1 = swing_hl.tx, y1 = swing_hl.t, x2 = shift_bars_to_right(b.n), y2 = swing_hl.t, width = 1, color = pd_premium_css)
+    bin.phl_ln.push(l)
+
+    swing_hl
+
+method detect_bear_phl(UDT_Zphl swing_hl, int trend) =>
+
+    swing_hl_t = swing_hl.t
+
+    if s_ms_btm > 0
+         
+        swing_hl.y      := s_ms_btm
+        swing_hl.x      := b.n - swing_ms_length
+        swing_hl.t      := s_ms_btm
+        swing_hl.tx     := b.n - swing_ms_length
+
+    if i_ms_btm > 0
+
+        swing_hl.icross := true
+        swing_hl.iy     := i_ms_btm
+        swing_hl.ix     := b.n - internal_ms_length
+
+    swing_hl.t          := math.min(b.l, swing_hl.t)
+    swing_hl.tx         := swing_hl.t == b.l ? b.n : swing_hl.tx
+    swing_hl.vol        := swing_hl.t != swing_hl_t[1] ? b.v : swing_hl.vol
+
+    swing_hl
+
+method draw_bear_phl(UDT_Zphl swing_hl) =>
+    var l = line.new(x1 = swing_hl.tx, y1 = swing_hl.t, x2 = shift_bars_to_right(b.n), y2 = swing_hl.t, width = 1, color = pd_discount_css)
+    bin.phl_ln.push(l)
+
+    swing_hl
+
+draw_mid_phl(UDT_Zphl swing_high, UDT_Zphl swing_low) =>
+    right = shift_bars_to_right(b.n)
+    avg   = math.avg(swing_low.t, swing_high.t)
+    more  = (swing_low.tx + right) > (swing_high.tx + right) ? swing_high.tx : swing_low.tx
+    dist  = math.abs((avg - b.c) / b.c)
+    var l = line.new(x1 = more, y1 = avg, x2 = right, y2 = avg, color = pd_equilibrum_css, width = 1, style = line.style_solid)
+    bin.phl_ln.push(l)
+
+    var lbl = label.new(x = right, y = avg, text = pd_strong_weak_high_low ? format_percent_label("Equilibrium ", dist) : "Equilibrium", style = label.style_label_left, color = colors_transparent, textcolor = pd_equilibrum_css, size = text_size(general_text), text_font_family = font_style(general_font))
+    bin.phl_lbl.push(lbl)
+
+draw_pd_zone(UDT_Zphl swing_high, UDT_Zphl swing_low) =>
+    extend_x = shift_bars_to_right(b.n)
+        
+    var pbx =  box.new(left = int(math.max(swing_high.x, swing_low.x)), top = swing_high.t, right = extend_x, bottom = 0.95  * swing_high.t + 0.05 * swing_low.t, bgcolor = set_opacity(pd_premium_css, 70), border_color = na)
+    var ebx = pd_equilibrium_show ? box.new(left = int(math.max(swing_high.x, swing_low.x)), top = 0.525 * swing_high.t + 0.475 * swing_low.t, right = extend_x, bottom = 0.525 * swing_low.t + 0.475 * swing_high.t, bgcolor = set_opacity(pd_equilibrum_css, 70), border_color = na) : na
+    var lbx = box.new(left = int(math.max(swing_high.x, swing_low.x)), top =  0.95 * swing_low.t + 0.05 * swing_high.t, right = extend_x, bottom = swing_low.t, bgcolor = set_opacity(pd_discount_css, 70), border_color = na)
+    bin.phl_box.push(pbx)
+    bin.phl_box.push(ebx)
+    bin.phl_box.push(lbx)
+
+// # Strong High / Weak Low ------------------------------------------------ #
+
+draw_strong_weak_hl(UDT_Zphl swing_high, UDT_Zphl swing_low) =>
+    extend_x = shift_bars_to_right(b.n)
+
+    // Strong High
+
+    dist_top = math.abs(swing_high.vol / (swing_high.vol + swing_low.vol))
+    top_label_text = swing_trend < 0
+         ? str.format("{0} | {1}", "Strong High", format_percent_label(str.tostring(swing_low.vol, format.volume), dist_top))
+         : str.format("{0} | {1}", "Weak High",   format_percent_label(str.tostring(swing_high.vol, format.volume), dist_top))
+
+    var label_top = label.new(x = extend_x, y = swing_high.t, color = colors_transparent, text  = top_label_text, textcolor = pd_premium_css, style = label.style_label_down, size = text_size(ms_swing_point_label_size), text_font_family = font_style(general_font))
+    bin.phl_lbl.push(label_top)
+
+    // Weak Low
+
+    dist_low = 1 - dist_top//math.abs(swing_low.vol / (swing_low.vol + swing_low.vol))
+    low_label_text = swing_trend > 0 
+             ? str.format("{0} | {1}", "Strong Low", format_percent_label(str.tostring(swing_low.vol, format.volume), dist_low))
+             : str.format("{0} | {1}", "Weak Low",   format_percent_label(str.tostring(swing_high.vol, format.volume), dist_low))
+            
+    var label_down = label.new(x = extend_x, y = swing_low.t, color = colors_transparent, text = low_label_text, textcolor = pd_discount_css, style = label.style_label_up, size = text_size(ms_swing_point_label_size), text_font_family = font_style(general_font))
+    bin.phl_lbl.push(label_down) 
+
+bin.clean_phl()
+
+if pd_premium_discount_show or pd_strong_weak_high_low
+    swing_high.detect_bull_phl(swing_trend)
+    swing_low .detect_bear_phl(swing_trend)
+
+    if barstate.islast
+        swing_high.draw_bull_phl()
+        swing_low .draw_bear_phl()
+
+if pd_strong_weak_high_low  and barstate.islast
+    draw_strong_weak_hl(swing_high, swing_low)
+
+if pd_premium_discount_show and barstate.islast
+    draw_pd_zone(swing_high, swing_low)
+
+    if pd_equilibrium_show
+        draw_mid_phl(swing_high, swing_low)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Highs & Lows MTF   |
+// # ========================================================================= #
+
+//#region EQH/EQL
+
+// # EQH/EQL ----------------------------------------------------------------- #
+
+get_ehl_threshhold() =>
+    int   position   = 2
+    float threshhold = 0.1
+    float atr = ta.atr(200)
+    
+    switch ms_eqh_eql_mode
+        "Short Term"            => position := 2,  threshhold := 0.1
+        "Intermediate Term"     => position := 6,  threshhold := 0.25
+        "Long Term"             => position := 10, threshhold := 0.5
+        
+    [position, atr * threshhold]
+
+method draw_ehl(array<UDT_EHL> ehls) => 
+    if ehls.size() > 0
+        len = math.min(10, ehls.size() - 1)
+        for i = 0 to len
+            ehl = ehls.get(i)
+            text_color  = ehl.bull ? ms_eqh_eql_bull_css : ms_eqh_eql_bear_css
+            label_style = ehl.bull ? label.style_label_down : label.style_label_up
+            label_text  = ehl.bull ? "EQH" : "EQL"
+            label_x     = int(math.avg(ehl.x2, ehl.x1))
+
+            bin.ehl_ln.unshift(line.new(x1 = ehl.x1, y1 = ehl.y1, x2 = ehl.x2, y2 = ehl.y2, color = text_color, style = line.style_dotted, xloc = xloc.bar_time))
+            bin.ehl_lbl.unshift(label.new(x = label_x, y = ehl.y2, color = colors_transparent, style = label_style, textcolor = text_color, text = label_text, size = text_size(general_text), text_font_family = font_style(general_font), xloc = xloc.bar_time))
+    ehls
+
+method detect_eh(array<UDT_EHL> ehs) =>
+    [position, threshhold] = get_ehl_threshhold()
+
+    var float high_price = 0
+    var int   ehl_t  = 0
+
+    float pivot_high = ta.pivothigh(high, position, position)
+
+    UDT_EHL ehl = na
+
+    if not na(pivot_high)
+        mx = math.max(pivot_high, high_price)
+        mn = math.min(pivot_high, high_price)
+        if mx < mn + threshhold
+            ehl := UDT_EHL.new(x1 = ehl_t, y1 = high_price, x2 = b_t[position], y2 = pivot_high, bull = true)
+            ehs.unshift(ehl)
+        high_price := pivot_high
+        ehl_t      := b_t[position]
+    ehl
+
+method detect_el(array<UDT_EHL> els) =>
+    [position, threshhold] = get_ehl_threshhold()
+
+    var float low_price = 0
+    var int   ehl_b  = 0
+
+    float ehl_pivot_low = ta.pivotlow(low, position, position)
+
+    UDT_EHL ehl = na
+
+    if not na(ehl_pivot_low)
+        mx = math.max(ehl_pivot_low, low_price)
+        mn = math.min(ehl_pivot_low, low_price)
+        if mn > mx - threshhold
+            ehl := UDT_EHL.new(x1 = ehl_b, y1 = low_price, x2 = b_t[position], y2 = ehl_pivot_low, bull = false)
+            els.unshift(ehl)
+        low_price := ehl_pivot_low
+        ehl_b     := b_t[position]
+    ehl
+
+bin.clean_ehl()
+
+if ms_eqh_eql_show
+    
+    var UDT_EHL[] bullish_equal_hl = array.new<UDT_EHL>()
+    var UDT_EHL[] bearish_equal_hl = array.new<UDT_EHL>()
+
+    eh = bullish_equal_hl.detect_eh()
+    el = bearish_equal_hl.detect_el()
+
+    if barstate.islast
+        
+        bullish_equal_hl.draw_ehl()
+        bearish_equal_hl.draw_ehl()
+
+    // alerts
+    bull_alert.enable_liquidity_ehl_alerts(eh)
+    bear_alert.enable_liquidity_ehl_alerts(el)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Highs & Lows MTF   |
+// # ========================================================================= #
+
+//#region Highs & Lows MTF
+
+hl() => [open, high, low, time]
+
+[pdo, pdh, pdl, pdt] = request.security(syminfo.tickerid , 'D'  , [open, high, low, time] , lookahead = barmerge.lookahead_on, gaps = barmerge.gaps_off)
+[pwo, pwh, pwl, pwt] = request.security(syminfo.tickerid , 'W'  , [open, high, low, time] , lookahead = barmerge.lookahead_on, gaps = barmerge.gaps_off)
+[pmo, pmh, pml, pmt] = request.security(syminfo.tickerid , 'M'  , [open, high, low, time] , lookahead = barmerge.lookahead_on, gaps = barmerge.gaps_off)
+[pqo, pqh, pql, pqt] = request.security(syminfo.tickerid , '3M' , [open, high, low, time] , lookahead = barmerge.lookahead_on, gaps = barmerge.gaps_off)
+[pyo, pyh, pyl, pyt] = request.security(syminfo.tickerid , '12M', [open, high, low, time] , lookahead = barmerge.lookahead_on, gaps = barmerge.gaps_off)
+
+method draw_pivots_hl_line(UDT_MTF mtf, color css, string pdhl_style, int line_width) =>
+    hl = line.new(
+       x1        = mtf.x1
+     , y1        = mtf.y1
+     , x2        = mtf.x2
+     , y2        = mtf.y2
+     , xloc      = xloc.bar_time
+     , color     = css
+     , style     = line_style(pdhl_style)
+     , width     = line_width
+     )
+    bin.hl_ln.push(hl)
+    mtf
+
+method draw_pivots_ll_line(UDT_MTF mtf,  color css, string pdhl_style, int line_width) =>
+    ll = line.new(
+       x1        = mtf.x1
+     , y1        = mtf.y1
+     , x2        = mtf.x2
+     , y2        = mtf.y2
+     , xloc      = xloc.bar_time
+     , color     = css
+     , style     = line_style(pdhl_style)
+     , width     = line_width
+     )
+    bin.hl_ln.push(ll)
+    mtf
+
+method draw_pivots_label(UDT_MTF mtf, string fmt, string tf, color css) =>
+    lbl = label.new(
+       x         = mtf.x2
+     , y         = mtf.y2
+     , xloc      = xloc.bar_time
+     , text      = str.format(fmt, tf)
+     , color     = colors_transparent
+     , textcolor = css
+     , size      = text_size(general_text)
+     , style     = label.style_label_left
+     , text_font_family = font_style(general_font)
+     )
+    bin.hl_lbl.push(lbl)
+    mtf
+
+method detect_mtf_hl(UDT_MTF mtf, float prev_price, float cur_price, tf, bool inrange) =>
+    if (tf == timeframe.period or timeframe.in_seconds() / 60 < timeframe.in_seconds(tf) / 60) and inrange
+        if cur_price == prev_price
+            mtf.x1 := time
+        mtf.y1 := prev_price
+        mtf.y2 := prev_price
+    mtf
+
+method detect_mtf_oc(UDT_MTF mtf, float prev_price, float cur_price, tf, bool inrange) =>
+    if (tf == timeframe.period or timeframe.in_seconds() / 60 < timeframe.in_seconds(tf) / 60) and inrange
+        if na(mtf.x1)
+            mtf.x1 := time
+        mtf.y1 := prev_price
+        mtf.y2 := prev_price
+    mtf
+
+mtf_pivots(h, l, o, t, tf, css, pdhl_style, line_width, inrange) =>
+
+    var h_mtf = UDT_MTF.new()
+    var l_mtf = UDT_MTF.new()
+    var o_mtf = UDT_MTF.new()
+    var m_mtf = UDT_MTF.new()
+
+    h_mtf.detect_mtf_hl(h, high, tf, inrange)
+    l_mtf.detect_mtf_hl(l, low , tf, inrange)
+    o_mtf.detect_mtf_oc(o, open, tf, inrange)
+
+    if barstate.islast
+
+        // validate high/low detections, if no candle is detected on the levels, set x1 to open 
+        if na(h_mtf.x1)
+            h_mtf.x1 := o_mtf.x1
+        if na(l_mtf.x1)
+            l_mtf.x1 := o_mtf.x1
+        
+        // position
+        extension = shift_to_right(time, 10, timeframe.period)
+
+        h_mtf.x2 := extension
+        l_mtf.x2 := extension
+        o_mtf.x2 := extension
+
+        midline_y = (h_mtf.y1 + l_mtf.y1) / 2
+        m_mtf.x1 := o_mtf.x1
+        m_mtf.x2 := extension
+        m_mtf.y1 := midline_y
+        m_mtf.y2 := midline_y
+
+        // Draw high line
+        h_mtf.draw_pivots_hl_line(css, pdhl_style, line_width)
+             .draw_pivots_label('P{0}H', tf, css)
+
+        // Draw low line
+        l_mtf.draw_pivots_ll_line(css, pdhl_style, line_width)
+             .draw_pivots_label('P{0}L', tf, css)
+
+                
+bin.clean_hl()
+
+if hl_daily
+    inrange = last_bar_time.get_prev_day().is_same_day(pdt)
+    mtf_pivots(pdh, pdl, pdo, pdt, 'D', hl_css_daily, hl_line_daily, hl_line_width_daily, inrange)
+
+if hl_weekly
+    inrange = last_bar_time.get_prev_week().is_same_week(pwt)
+    mtf_pivots(pwh, pwl, pwo, pwt, 'W', hl_css_weekly, hl_line_weekly, hl_line_width_weekly, inrange)
+
+if hl_monthly  
+    inrange = last_bar_time.get_prev_month().is_same_month(pmt)
+    mtf_pivots(pmh, pml, pmo, pmt, 'M', hl_css_monthly, hl_line_monthly, hl_line_width_monthly, inrange)
+
+if hl_quartely
+    inrange = last_bar_time.get_prev_quarter().is_same_quarter(pqt)
+    mtf_pivots(pqh, pql, pqo, pqt, '3M', hl_css_quaterly, hl_line_quaterly, hl_line_width_quaterly, inrange)
+
+if hl_yearly
+    inrange = last_bar_time.get_prev_year() == year(pyt)
+    mtf_pivots(pyh, pyl, pyo, pyt, '12M', hl_css_yearly, hl_line_yearly, hl_line_width_yearly, inrange)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Plotting/Coloring   |
+// # ========================================================================= #
+
+//#region
+
+p_css = internal_ms.css
+b_css = internal_ms.css
+w_css = internal_ms.css
+
+p_css := ms_plotcandle ? (internal_ms.css) : na
+b_css := ms_barcolor   ? (internal_ms.css) : na
+w_css := ms_plotcandle ? color.rgb(120, 123, 134, 50)           : na
+
+plotcandle(open,high,low,close , color = p_css , wickcolor = w_css , bordercolor = p_css , editable = false)
+barcolor(b_css, editable = false)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Alerts   |
+// # ========================================================================= #
+
+//#region
+
+alertcondition(bull_alert.bos              , "Bullish BOS", "Bullish BOS")
+alertcondition(bull_alert.choch            , "Bullish CHOCH", "Bullish CHOCH")
+alertcondition(bull_alert.chochplus        , "Bullish CHOCH+", "Bullish CHOCH+")
+alertcondition(bull_alert.chochplusswing   , "Bullish Swing CHOCH+", "Bullish Swing CHOCH+")
+alertcondition(bull_alert.chochswing       , "Bullish Swing CHOCH", "Bullish CHOCH")
+alertcondition(bull_alert.swingbos         , "Bullish Swing BOS", "Bullish Swing BOS")
+alertcondition(bull_alert.ehl              , "EQL", "EQL")
+alertcondition(bull_alert.fvg              , "Bullish FVG", "Bullish FVG")
+alertcondition(bull_alert.og               , "Bullish OG", "Bullish OG")
+alertcondition(bull_alert.ob               , "Bullish Order Block", "Bullish Order Block")
+alertcondition(bull_alert.obtouch          , "Candle Entering in a Bullish Order Block", "Candle Entering in a Bullish Order Block")
+alertcondition(bull_alert.swing_ob         , "Bullish Swing Order Block", "Bullish Swing Order Block")
+
+alertcondition(bear_alert.bos              , "Bearish BOS", "Bearish BOS")
+alertcondition(bear_alert.choch            , "Bearish CHOCH", "Bearish CHOCH")
+alertcondition(bear_alert.chochplus        , "Bearish CHOCH+", "Bearish CHOCH+")
+alertcondition(bear_alert.chochplusswing   , "Bearish Swing CHOCH+", "Bearish Swing CHOCH+")
+alertcondition(bear_alert.chochswing       , "Bearish Swing CHOCH", "Bearish CHOCH")
+alertcondition(bear_alert.swingbos         , "Bearish Swing BOS", "Bearish Swing BOS")
+alertcondition(bear_alert.ehl              , "EQH", "EQH")
+alertcondition(bear_alert.fvg              , "Bearish FVG", "Bearish FVG")
+alertcondition(bear_alert.og               , "Bearish OG", "Bearish OG")
+alertcondition(bear_alert.ob               , "Bearish Order Block", "Bearish Order Block")
+alertcondition(bear_alert.obtouch          , "Candle Entering in a Bearish Order Block", "Candle Entering in a Bearish Order Block")
+alertcondition(bear_alert.swing_ob         , "Bearish Swing Order Block", "Bearish Swing Order Block")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and general_brand_show == false
+    var table brand = table.new(position.bottom_right, 1, 1, bgcolor = chart.bg_color)
+    table.cell(brand, 0, 0,  "© CandelaCharts", text_color = colors_gray, text_halign = text.align_center, text_size = text_size(general_text), text_font_family = font_style(general_font))
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #

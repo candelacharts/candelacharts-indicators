@@ -1,0 +1,210 @@
+//@version=6
+indicator(title = "CandelaCharts - Mean Reversion Oscillator", shorttitle = "CandelaCharts - Mean Reversion Oscillator", overlay=false, max_lines_count=500)
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Colors   |
+// # ========================================================================= #
+
+//#region
+
+// # Core -------------------------------------------------------------------- #
+
+colors_white                        = color.white
+colors_black                        = color.black
+colors_purple                       = color.purple
+colors_red                          = color.red
+colors_gray                         = color.gray
+colors_blue                         = color.blue
+colors_orange                       = color.orange
+colors_green                        = color.green
+color_transparent                   = #ffffff00
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Inputs   |
+// # ========================================================================= #
+
+//#region
+
+// # General ----------------------------------------------------------------- #
+
+general_font                            = input.string("Monospace", "Text                   ", options = ["Default", "Monospace"], inline = "1.0", group = "General")
+general_text                            = input.string("Tiny", "", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], inline = "1.0", group = "General", tooltip = "Customize global text size and style")
+general_brand_show                      = input.bool(false, "Hide Brand", group = "General")
+
+// #  Mean Reversion Oscillator ---------------------------------------------- #
+
+mro_length                              = input.int(50, minval=1, title="MA Length          ", inline = "1.0", group = "Settings")
+mro_dev_length                          = input.int(40, minval=1, title="StdDev Length    ", inline = "2.0", group = "Settings", tooltip = "Set the StdDev length equal to the MA length to achieve proper oscillator plotting.")
+mro_overbought                          = input.int(70, title="Overbought         ", inline = "3.0", group = "Settings")
+mro_oversold                            = input.int(30, title="Oversold             ", inline = "4.0", group = "Settings")
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Functions   |
+// # ========================================================================= #
+
+//#region
+
+method text_size(string size) =>
+    out = switch size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        "Auto"   => size.auto
+    out
+
+method line_style(string style) =>
+    out = switch style
+        '⎯⎯⎯'  => line.style_solid
+        '----'   => line.style_dashed
+        '····'   => line.style_dotted
+
+method font_style(string font) =>
+    out = switch font
+        'Default'   => font.family_default
+        'Monospace' => font.family_monospace
+
+is_dark() =>
+    bg_color = chart.bg_color
+
+    r = color.r(bg_color)
+    g = color.g(bg_color)
+    b = color.b(bg_color)
+    luminosity = r + g + b
+    is_dark = luminosity <= 383
+
+    is_dark
+
+// SMA that starts from the first bar (dynamic until len reached)
+sma_from_start(srcSeries, len) =>
+    cum   = ta.cum(srcSeries)                // cumulative sum
+    bars  = bar_index + 1                    // bars seen
+    denom = math.min(bars, len)              // denominator grows until len
+    (cum - nz(cum[len], 0)) / denom          // cumulative avg → SMA
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Algorithm   |
+// # ========================================================================= #
+
+//#region
+
+// Calculate simple moving average and standard deviation
+ma = sma_from_start(close, mro_length)
+stdDev = ta.stdev(close, mro_dev_length)
+
+// Mean Reversion Oscillator calculation
+mro_raw = (close - ma) / stdDev
+// Normalize oscillator to 0-100 scale with mean 50
+mro = 50 + (mro_raw * 10)
+
+// Clamp values between 0 and 100
+mro_clamped = math.max(0, math.min(100, mro))
+
+// Color settings for oscillator bars
+colorOsc = mro_clamped > mro_overbought ? color.red : mro_clamped < mro_oversold ? color.green : color.blue
+
+// Plot oscillator as histogram
+plot(mro_clamped, title="MRO", style=plot.style_line, color=colorOsc, linewidth=2)
+
+// Background shading
+bgcolor(mro_clamped > mro_overbought ? color.new(color.red, 90) : na, title="Overbought")
+bgcolor(mro_clamped < mro_oversold ? color.new(color.green, 90) : na, title="Oversold")
+
+// Plot horizontal levels
+hline(mro_overbought, 'Overbought', color=color.red, linestyle=hline.style_dashed)
+hline(mro_oversold, 'Oversold', color=color.green, linestyle=hline.style_dashed)
+hline(50, 'Midline', color=color.gray, linestyle=hline.style_dotted)
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #
+
+
+
+
+
+
+
+
+
+
+
+
+// # ========================================================================= #
+// # |   Brand   |
+// # ========================================================================= #
+
+//#region
+
+if barstate.isfirst and general_brand_show == false
+    var table brand = table.new(position.bottom_right, 1, 1, bgcolor = chart.bg_color)
+    table.cell(brand, 0, 0,  "© CandelaCharts", text_color = colors_gray, text_halign = text.align_center, text_size = text_size(general_text), text_font_family = font_style(general_font))
+
+//#endregion
+
+// # ========================================================================= #
+// # |   End   |
+// # ========================================================================= #

@@ -31,12 +31,14 @@ The **CandelaCharts Indicators** repository provides a comprehensive toolkit for
 | Indicator | Category | Key Metrics & Concepts | Source | Documentation |
 | :--- | :--- | :--- | :--- | :--- |
 | **ATH Drawdown** | Cycle / Risk | Running ATH % distance, risk bands, capitulation alert (−70% to −80%) | [`ath-drawdown.pine`](src/ath-drawdown/ath-drawdown.pine) | [Docs](src/ath-drawdown/DOCUMENTATION.md) |
+| **Bitcoin Dominance Trend** | Trend / Dominance | BTC.D tracking, multi-type MA trend filter, 40%/50%/65% rotation zones | [`bitcoin-dominance-trend.pine`](src/bitcoin-dominance-trend/bitcoin-dominance-trend.pine) | [Docs](src/bitcoin-dominance-trend/DOCUMENTATION.md) |
 | **Bitcoin Realized Price Bands** | On-Chain / Valuation | Realized Price multiples, MVRV oscillator, cycle tops & bottoms | [`bitcoin-realized-price-bands.pine`](src/bitcoin-realized-price-bands/bitcoin-realized-price-bands.pine) | [Docs](src/bitcoin-realized-price-bands/DOCUMENTATION.md) |
 | **Global M2** | Macro Liquidity | Multi-nation M2 aggregate (19 economies in USD), YoY growth % | [`global-m2.pine`](src/global-m2/global-m2.pine) | [Docs](src/global-m2/DOCUMENTATION.md) |
 | **Major Assets** | Cross-Asset / Relative Strength | Rebased performance (Base = 100), equities, bonds, crypto, commodities | [`major-assets.pine`](src/major-assets/major-assets.pine) | [Docs](src/major-assets/DOCUMENTATION.md) |
 | **Mayer Multiple Z-Score** | Mean Reversion / Valuation | Normalized Z-Score (−3σ to +3σ) of Mayer Multiple, regime EMA | [`mayer-multiple-z-score.pine`](src/mayer-multiple-z-score/mayer-multiple-z-score.pine) | [Docs](src/mayer-multiple-z-score/DOCUMENTATION.md) |
 | **Momentum Pulse** | Trend / Momentum | Log-return momentum, adaptive standard-deviation bands (±k·σ), context MAs | [`momentum-pulse.pine`](src/momentum-pulse/momentum-pulse.pine) | [Docs](src/momentum-pulse/DOCUMENTATION.md) |
 | **Monthly Price Momentum** | Momentum / Oscillator | ~30-day Rate of Change (ROC%), EMA smoothing, overheat levels | [`monthly-price-momentum.pine`](src/monthly-price-momentum/monthly-price-momentum.pine) | [Docs](src/monthly-price-momentum/DOCUMENTATION.md) |
+| **MVRV Ratio** | On-Chain / Valuation | BTC/ETH on-chain MVRV, cycle top/bottom levels, dynamic ±σ dispersion bands | [`mvrv-ratio.pine`](src/mvrv-ratio/mvrv-ratio.pine) | [Docs](src/mvrv-ratio/DOCUMENTATION.md) |
 | **Sequential Exhaustion** | Reversal / Oscillator | DeMark-inspired exhaustion, intra-period margin tests, divergences | [`sequential-exhaustion.pine`](src/sequential-exhaustion/sequential-exhaustion.pine) | [Docs](src/sequential-exhaustion/DOCUMENTATION.md) |
 
 ---
